@@ -33,12 +33,13 @@
             "@/store/*": ["./src/store/*"],
             "@/api/*": ["./src/api/*"],
             "@features/*": ["./src/features/*"],
-            "@shared/*": ["./src/shared/*"],
+            "@shared/*": ["./src/shared/*", "./shared/react/src/*"],
             "@shared": ["./src/shared/index.ts"]
         }
     },
     "include": [
-        "src"
+        "src",
+        "shared/react/src"
     ],
     "exclude": [
         "src/App-new.tsx"
