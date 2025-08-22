@@ -1,0 +1,47 @@
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+
+import App from './App'
+import './styles/global.css'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { NotificationProvider } from './components/Notifications'
+import { MilestoneProvider } from './context/MilestoneContext'
+import { SecurityProvider } from './context/SecurityContext'
+import { UserProvider } from './context/UserContext'
+import { PrometheusMetricsProvider, usePrometheusPushGateway } from '@shared';
+
+const EnvMetricsWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const url = (import.meta as any).env?.VITE_PUSHGATEWAY_URL;
+  if (url) {
+    try { usePrometheusPushGateway({ url, job: 'frontend', instance: window.location.hostname, intervalMs: 15000 }); } catch {}
+  }
+  return <>{children}</>;
+};
+
+// Initialize the React app
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+  {/** Small component to conditionally enable pushgateway */}
+  {/** Wrapped inside provider below */}
+    
+    <SecurityProvider enforceVPN={false} requirePasskeys={false}>
+      <UserProvider>
+        <MilestoneProvider>
+          <NotificationProvider>
+            <BrowserRouter>
+              <PrometheusMetricsProvider>
+                <EnvMetricsWrapper>
+                  <ErrorBoundary>
+                    <App />
+                  </ErrorBoundary>
+                </EnvMetricsWrapper>
+              </PrometheusMetricsProvider>
+            </BrowserRouter>
+          </NotificationProvider>
+        </MilestoneProvider>
+      </UserProvider>
+    </SecurityProvider>
+  </React.StrictMode>,
+)
+

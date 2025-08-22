@@ -1,0 +1,47 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "useDefineForClassFields": true,
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "module": "ESNext",
+        "skipLibCheck": true,
+        "types": ["vitest/globals"],
+        "allowJs": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "strict": false,
+        "forceConsistentCasingInFileNames": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+
+        /* Bundler mode */
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "jsx": "react-jsx",
+
+        /* Paths */
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./src/*"],
+            "@/components/*": ["./src/components/*"],
+            "@/hooks/*": ["./src/hooks/*"],
+            "@/lib/*": ["./src/lib/*"],
+            "@/types/*": ["./src/types/*"],
+            "@/store/*": ["./src/store/*"],
+            "@/api/*": ["./src/api/*"],
+            "@features/*": ["./src/features/*"],
+            "@shared/*": ["./src/shared/*"],
+            "@shared": ["./src/shared/index.ts"]
+        }
+    },
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "src/App-new.tsx"
+    ],
+    "references": [{ "path": "./tsconfig.node.json" }]
+}

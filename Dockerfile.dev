@@ -1,0 +1,30 @@
+# Vite React Development Dockerfile
+# Fast development setup with hot reload
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies for development
+RUN apk add --no-cache \
+    curl \
+    git
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose ports for Vite dev server and HMR
+EXPOSE 3000 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Start development server with hot reload
+CMD ["npm", "run", "dev"]
