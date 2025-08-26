@@ -618,7 +618,7 @@ export const MilestoneProvider: React.FC<MilestoneProviderProps> = ({ children }
 
   // Load user progress from localStorage on mount
   useEffect(() => {
-    const savedProgress = localStorage.getItem('fks-user-progress');
+    const savedProgress = localStorage.getItem('fks_user-progress');
     if (savedProgress) {
       try {
         const parsed = JSON.parse(savedProgress);
@@ -627,7 +627,7 @@ export const MilestoneProvider: React.FC<MilestoneProviderProps> = ({ children }
         console.error('Failed to load user progress:', error);
       }
     }
-    const savedMilestones = localStorage.getItem('fks-available-milestones');
+    const savedMilestones = localStorage.getItem('fks_available-milestones');
     if (savedMilestones) {
       try {
         const parsed: Milestone[] = JSON.parse(savedMilestones);
@@ -649,12 +649,12 @@ export const MilestoneProvider: React.FC<MilestoneProviderProps> = ({ children }
 
   // Save user progress to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('fks-user-progress', JSON.stringify(state.userProgress));
+    localStorage.setItem('fks_user-progress', JSON.stringify(state.userProgress));
   }, [state.userProgress]);
 
   // Save available milestones (including requirement state/evidence) when they change
   useEffect(() => {
-    localStorage.setItem('fks-available-milestones', JSON.stringify(state.availableMilestones));
+    localStorage.setItem('fks_available-milestones', JSON.stringify(state.availableMilestones));
   }, [state.availableMilestones]);
 
   // Helper functions

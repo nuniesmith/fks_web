@@ -1,0 +1,17 @@
+services:
+  fks_web:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    working_dir: /app/service
+    networks: [fks_net]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5173/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  fks_net:
+    name: fks_net

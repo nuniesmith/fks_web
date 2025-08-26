@@ -45,7 +45,7 @@ export class AuthentikService {
 
   private constructor() {
   this.baseUrl = import.meta.env.VITE_AUTHELIA_URL || '';
-  this.clientId = import.meta.env.VITE_AUTHELIA_CLIENT_ID || 'fks-trading-platform';
+  this.clientId = import.meta.env.VITE_AUTHELIA_CLIENT_ID || 'fks_trading-platform';
   this.clientSecret = import.meta.env.VITE_AUTHELIA_CLIENT_SECRET || '';
   this.realmName = import.meta.env.VITE_AUTHELIA_REALM || 'fks';
   }

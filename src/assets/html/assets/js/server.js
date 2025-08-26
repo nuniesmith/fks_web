@@ -31,7 +31,7 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    service: 'fks-web'
+    service: 'fks_web'
   });
 });
 

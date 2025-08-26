@@ -161,14 +161,14 @@ const NinjaTraderIntegration: React.FC = () => {
   const handleDownload = async () => {
     try {
       addLog('Starting download...', 'info');
-      const response = await fetch(`${BUILD_API_BASE}/api/download/fks-addon.zip`);
+      const response = await fetch(`${BUILD_API_BASE}/api/download/fks_addon.zip`);
       
       if (response.ok) {
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'fks-trading-system.zip';
+        a.download = 'fks_trading-system.zip';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

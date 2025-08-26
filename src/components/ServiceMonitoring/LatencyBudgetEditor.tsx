@@ -4,7 +4,7 @@ import type { ContractTestSpec } from '../../hooks/useServiceContractTests';
 
 interface Props { serviceId: string; specs: ContractTestSpec[]; onUpdate: (updated: ContractTestSpec[]) => void; }
 
-const keyFor = (serviceId: string) => `fks-contract-overrides-${serviceId}`;
+const keyFor = (serviceId: string) => `fks_contract-overrides-${serviceId}`;
 
 const LatencyBudgetEditor: React.FC<Props> = ({ serviceId, specs, onUpdate }) => {
   const [open, setOpen] = useState(false);

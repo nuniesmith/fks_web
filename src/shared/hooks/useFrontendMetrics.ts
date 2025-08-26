@@ -60,7 +60,7 @@ export const useFrontendMetrics = (opts: FrontendMetricsOptions = {}) => {
 
 	useEffect(() => {
 		const hash = (s: string) => { let h = 0, i = 0, len = s.length; while (i < len) { h = (h * 31 + s.charCodeAt(i++)) | 0; } return (h >>> 0).toString(36); };
-		const FP_KEY = 'fks-error-fingerprints';
+		const FP_KEY = 'fks_error-fingerprints';
 		const TTL_MS = 24 * 60 * 60 * 1000;
 		interface StoredFp { fp: string; first: number; last: number; count: number; }
 		let stored: StoredFp[] = [];

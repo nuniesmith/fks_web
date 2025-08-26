@@ -105,7 +105,7 @@ class ApiService {
   }
 
   async downloadAddon(): Promise<Blob> {
-    const response = await fetch(`${this.baseUrl}/api/download/fks-addon.zip`, {
+    const response = await fetch(`${this.baseUrl}/api/download/fks_addon.zip`, {
       signal: AbortSignal.timeout(60000) // 1 minute timeout
     });
     

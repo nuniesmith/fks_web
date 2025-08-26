@@ -96,13 +96,13 @@ const GamifiedNavigation: React.FC<MainNavigationProps> = ({
     { id: 'project-health', label: 'Project Health', icon: <Activity className="w-5 h-5" />, description: 'Monitor code quality and project issues', category: 'system', requiredLevel: 7 },
 
     // FKS Services (Core Intelligence) - High level requirements
-    { id: 'fks-data', label: 'FKS Data Service', icon: <Database className="w-5 h-5" />, description: 'Data ETL pipelines and validation', category: 'trading', badge: 'GPU', requiredLevel: 5 },
-    { id: 'fks-training', label: 'FKS Training Service', icon: <Brain className="w-5 h-5" />, description: 'ML model training and backtesting', category: 'trading', badge: 'GPU', requiredLevel: 6 },
-    { id: 'fks-transformer', label: 'FKS Transformer Service', icon: <Zap className="w-5 h-5" />, description: 'NLP and sentiment analysis', category: 'trading', badge: 'GPU', requiredLevel: 7 },
+    { id: 'fks_data', label: 'FKS Data Service', icon: <Database className="w-5 h-5" />, description: 'Data ETL pipelines and validation', category: 'trading', badge: 'GPU', requiredLevel: 5 },
+    { id: 'fks_training', label: 'FKS Training Service', icon: <Brain className="w-5 h-5" />, description: 'ML model training and backtesting', category: 'trading', badge: 'GPU', requiredLevel: 6 },
+    { id: 'fks_transformer', label: 'FKS Transformer Service', icon: <Zap className="w-5 h-5" />, description: 'NLP and sentiment analysis', category: 'trading', badge: 'GPU', requiredLevel: 7 },
 
     // Trading Tools & Features - Progressive unlock
     { id: 'strategy-library', label: 'Strategy Library', icon: <Database className="w-5 h-5" />, description: 'Build and manage trading strategies', category: 'trading', requiredLevel: 3 },
-    { id: 'fks-intelligence', label: 'FKS Intelligence', icon: <Brain className="w-5 h-5" />, description: 'GPU-accelerated trading intelligence', category: 'trading', badge: 'AI', requiredLevel: 6 },
+    { id: 'fks_intelligence', label: 'FKS Intelligence', icon: <Brain className="w-5 h-5" />, description: 'GPU-accelerated trading intelligence', category: 'trading', badge: 'AI', requiredLevel: 6 },
     { id: 'trading-mode', label: 'Trading Mode Control', icon: <Settings className="w-5 h-5" />, description: 'Simulation vs Live trading control', category: 'trading', requiredLevel: 2 },
     { id: 'market-insights', label: 'Market Insights', icon: <TrendingUp className="w-5 h-5" />, description: 'AI-powered market analysis', category: 'trading', badge: 'AI', requiredLevel: 4 },
     { id: 'live-charts', label: 'Live Charts', icon: <BarChart3 className="w-5 h-5" />, description: 'Real-time charting and technical analysis', category: 'trading', requiredLevel: 2 },

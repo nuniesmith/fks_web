@@ -38,8 +38,8 @@ const FKSApp = () => {
     }
     
     return (
-        <div className="fks-app">
-            <nav className="fks-nav">
+        <div className="fks_app">
+            <nav className="fks_nav">
                 <div className="nav-brand">
                     <span className="brand-icon">⚡</span>
                     <span className="brand-text">FKS Trading Systems</span>
@@ -66,7 +66,7 @@ const FKSApp = () => {
                 </div>
             </nav>
             
-            <main className="fks-main">
+            <main className="fks_main">
                 {renderCurrentView()}
             </main>
         </div>

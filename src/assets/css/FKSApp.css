@@ -1,10 +1,10 @@
-.fks-app {
+.fks_app {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
-.fks-nav {
+.fks_nav {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
@@ -62,14 +62,14 @@
     color: white;
 }
 
-.fks-main {
+.fks_main {
     flex: 1;
     overflow-y: auto;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-    .fks-nav {
+    .fks_nav {
         padding: 1rem;
         flex-direction: column;
         gap: 1rem;

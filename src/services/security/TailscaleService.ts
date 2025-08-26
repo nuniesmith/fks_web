@@ -225,7 +225,7 @@ export class TailscaleService {
     const endpoint = `${serviceName}.${status.tailnetName}`;
     
     // Add service tags for access control
-    await this.addServiceTags(serviceName, [...tags, 'fks-service']);
+    await this.addServiceTags(serviceName, [...tags, 'fks_service']);
     
     return `https://${endpoint}:${port}`;
   }

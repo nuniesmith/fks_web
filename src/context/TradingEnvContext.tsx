@@ -142,7 +142,7 @@ export const TradingEnvProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Persisted configuration (single source of truth replacing legacy provider)
   const [tradingConfig, setTradingConfig] = useState<TradingConfig>(() => {
     try {
-  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('fks-trading-config') : null
+  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('fks_trading-config') : null
       if (saved) {
         const parsed = JSON.parse(saved)
         return { ...defaultTradingConfig, ...parsed }
@@ -161,7 +161,7 @@ export const TradingEnvProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Persist whenever config changes
   useEffect(() => {
-  try { if (typeof localStorage !== 'undefined') localStorage.setItem('fks-trading-config', JSON.stringify(tradingConfig)) } catch {}
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem('fks_trading-config', JSON.stringify(tradingConfig)) } catch {}
   }, [tradingConfig])
 
   const updateConfig = useCallback((partial: Partial<TradingConfig>) => {

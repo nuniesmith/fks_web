@@ -24,7 +24,7 @@ const Dashboard = () => {
             // Fallback services if API fails
             const fallbackServices = [
                 {
-                    id: 'fks-addon',
+                    id: 'fks_addon',
                     name: 'FKS Trading Addon',
                     icon: '⚡',
                     description: 'Custom FKS trading algorithms and strategies',

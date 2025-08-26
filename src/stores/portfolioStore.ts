@@ -62,5 +62,5 @@ export const usePortfolioStore = create<PortfolioState>()(
   },
   setIncomeAllocation: (k, v) => set((s)=> ({ incomeAllocation: { ...s.incomeAllocation, [k]: clamp(Math.round(v), 0, 100) } })),
   setHardwarePubKey: (v) => set({ hardwarePubKey: v }),
-  }), { name: 'fks-portfolio' })
+  }), { name: 'fks_portfolio' })
 );

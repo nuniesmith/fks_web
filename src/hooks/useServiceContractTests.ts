@@ -54,7 +54,7 @@ export const useServiceContractTests = (serviceId: string, baseUrl: string, spec
   // Hydrate from localStorage (latest snapshot only)
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(`fks-contract-${serviceId}`);
+      const raw = localStorage.getItem(`fks_contract-${serviceId}`);
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed.results)) setResults(parsed.results);
@@ -265,7 +265,7 @@ export const useServiceContractTests = (serviceId: string, baseUrl: string, spec
           }
         });
         // persist lightweight snapshot
-        try { localStorage.setItem(`fks-contract-${serviceId}`, JSON.stringify({ results: combined.slice(-600), history: historyRef.current })); } catch {}
+        try { localStorage.setItem(`fks_contract-${serviceId}`, JSON.stringify({ results: combined.slice(-600), history: historyRef.current })); } catch {}
         return combined;
       });
       return newResults;

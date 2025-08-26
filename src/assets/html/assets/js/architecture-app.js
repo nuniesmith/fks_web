@@ -471,7 +471,7 @@ class ArchitectureApp {
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'fks-architecture.json';
+        link.download = 'fks_architecture.json';
         link.click();
     }
 }

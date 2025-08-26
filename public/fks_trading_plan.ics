@@ -8,7 +8,7 @@ SUMMARY:Day 1: Project Setup and Review
 DTSTART;TZID=America/New_York:20250727T090000
 DTEND;TZID=America/New_York:20250727T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250727-3705
+UID:fks_20250727-3705
 CATEGORIES:Foundation
 DESCRIPTION:Tasks:\n- Set up project repository with React\, Tailwind CSS\
  , and FastAPI\n- Review architecture-diagram.html and map components to Re
@@ -23,7 +23,7 @@ SUMMARY:Day 2: Navigation Implementation
 DTSTART;TZID=America/New_York:20250728T090000
 DTEND;TZID=America/New_York:20250728T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250728-6622
+UID:fks_20250728-6622
 CATEGORIES:Foundation
 DESCRIPTION:Tasks:\n- Create responsive sidebar navigation for Home\, Trad
  ing\, Portfolio\, Profile\, Accounts\, Settings\, Help\n- Implement theme 
@@ -39,7 +39,7 @@ SUMMARY:Day 3: Home Page Enhancements
 DTSTART;TZID=America/New_York:20250729T090000
 DTEND;TZID=America/New_York:20250729T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250729-1570
+UID:fks_20250729-1570
 CATEGORIES:Foundation
 DESCRIPTION:Tasks:\n- Enhance Home page with dynamic content (market updat
  es\, recent trades)\n- Integrate WebSocket for real-time updates using Rit
@@ -53,7 +53,7 @@ SUMMARY:Day 4: Trading Section - Simulated Environment
 DTSTART;TZID=America/New_York:20250730T090000
 DTEND;TZID=America/New_York:20250730T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250730-8105
+UID:fks_20250730-8105
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Create Trading section with sub-pages for simulated 
  trading (Live Charts\, Market Insights\, Analytics)\n- Implement simulated
@@ -68,7 +68,7 @@ SUMMARY:Day 5: Trading Section - Strategy Development
 DTSTART;TZID=America/New_York:20250731T090000
 DTEND;TZID=America/New_York:20250731T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250731-2757
+UID:fks_20250731-2757
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Develop Strategy Development sub-page with component
  s for creating and testing strategies\n- Implement backtesting functionali
@@ -83,7 +83,7 @@ SUMMARY:Day 6: Trading Section - Real-Time Environment
 DTSTART;TZID=America/New_York:20250801T090000
 DTEND;TZID=America/New_York:20250801T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250801-7898
+UID:fks_20250801-7898
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Add real-time trading workflow\, integrating with Ri
  thmic API for execution\n- Implement switch between simulated and real-tim
@@ -97,7 +97,7 @@ SUMMARY:Day 7: Testing and Refinement
 DTSTART;TZID=America/New_York:20250802T090000
 DTEND;TZID=America/New_York:20250802T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250802-1627
+UID:fks_20250802-1627
 CATEGORIES:Testing
 DESCRIPTION:Tasks:\n- Write Jest/React Testing Library tests for navigatio
  n and Trading components\n- Test responsiveness across mobile and desktop 
@@ -112,7 +112,7 @@ SUMMARY:Day 8: Portfolio Section
 DTSTART;TZID=America/New_York:20250803T090000
 DTEND;TZID=America/New_York:20250803T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250803-3945
+UID:fks_20250803-3945
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Create Portfolio section with asset allocation and p
  erformance metrics\n- Implement charts for historical performance using D3
@@ -126,7 +126,7 @@ SUMMARY:Day 9: Profile Section
 DTSTART;TZID=America/New_York:20250804T090000
 DTEND;TZID=America/New_York:20250804T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250804-5662
+UID:fks_20250804-5662
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Develop Profile page for strategy\, currency\, and r
  isk management preferences\n- Use React hooks for state management and for
@@ -140,7 +140,7 @@ SUMMARY:Day 10: Accounts Section
 DTSTART;TZID=America/New_York:20250805T090000
 DTEND;TZID=America/New_York:20250805T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250805-3386
+UID:fks_20250805-3386
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Create Accounts page to manage trading accounts (add
  \, enable/disable)\n- Integrate with backend to fetch enabled accounts for
@@ -154,7 +154,7 @@ SUMMARY:Day 11: Settings and Help Sections
 DTSTART;TZID=America/New_York:20250806T090000
 DTEND;TZID=America/New_York:20250806T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250806-1978
+UID:fks_20250806-1978
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Implement Settings page for app configurations (API 
  keys\, notifications)\n- Create Help page with documentation and FAQs\n- E
@@ -168,7 +168,7 @@ SUMMARY:Day 12: Backend Integration - Simulated Trading
 DTSTART;TZID=America/New_York:20250807T090000
 DTEND;TZID=America/New_York:20250807T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250807-6502
+UID:fks_20250807-6502
 CATEGORIES:Integration
 DESCRIPTION:Tasks:\n- Develop FastAPI endpoints for simulated trading (str
  ategy execution\, backtesting)\n- Integrate Python trading logic (converte
@@ -182,7 +182,7 @@ SUMMARY:Day 13: Backend Integration - Real-Time Trading
 DTSTART;TZID=America/New_York:20250808T090000
 DTEND;TZID=America/New_York:20250808T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250808-7096
+UID:fks_20250808-7096
 CATEGORIES:Integration
 DESCRIPTION:Tasks:\n- Develop FastAPI endpoints for real-time trading with
   Rithmic API\n- Implement logic to apply strategies to multiple accounts\n
@@ -196,7 +196,7 @@ SUMMARY:Day 14: Testing and Optimization
 DTSTART;TZID=America/New_York:20250809T090000
 DTEND;TZID=America/New_York:20250809T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250809-4447
+UID:fks_20250809-4447
 CATEGORIES:Testing
 DESCRIPTION:Tasks:\n- Write tests for Portfolio\, Profile\, and Accounts c
  omponents\n- Optimize React components with memoization to prevent unneces
@@ -211,7 +211,7 @@ SUMMARY:Day 15: FKS Additional Services - Data
 DTSTART;TZID=America/New_York:20250810T090000
 DTEND;TZID=America/New_York:20250810T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250810-8514
+UID:fks_20250810-8514
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Create fks_data page for data service management (ET
  L\, data validation)\n- Integrate with Redis and PostgreSQL for data handl
@@ -225,7 +225,7 @@ SUMMARY:Day 16: FKS Additional Services - Training
 DTSTART;TZID=America/New_York:20250811T090000
 DTEND;TZID=America/New_York:20250811T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250811-5186
+UID:fks_20250811-5186
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Create fks_training page for ML model training and b
  acktesting\n- Integrate with Python backend (PyTorch\, MLflow) for trainin
@@ -239,7 +239,7 @@ SUMMARY:Day 17: FKS Additional Services - Transformer
 DTSTART;TZID=America/New_York:20250812T090000
 DTEND;TZID=America/New_York:20250812T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250812-2517
+UID:fks_20250812-2517
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Create fks_transformer page for NLP and sentiment an
  alysis\n- Integrate with Python backend (BERT\, spaCy) for real-time proce
@@ -253,7 +253,7 @@ SUMMARY:Day 18: Node Network Setup
 DTSTART;TZID=America/New_York:20250813T090000
 DTEND;TZID=America/New_York:20250813T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250813-4685
+UID:fks_20250813-4685
 CATEGORIES:Infrastructure
 DESCRIPTION:Tasks:\n- Set up Node.js-based master node for API communicati
  ons\n- Implement API routing for Rithmic and crypto trading APIs\n- Config
@@ -268,7 +268,7 @@ SUMMARY:Day 19: Docker and Kubernetes
 DTSTART;TZID=America/New_York:20250814T090000
 DTEND;TZID=America/New_York:20250814T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250814-1907
+UID:fks_20250814-1907
 CATEGORIES:Infrastructure
 DESCRIPTION:Tasks:\n- Create Dockerfiles for React\, Python\, and Node.js 
  services\n- Implement health checks and auto-restart in Docker Compose\n- 
@@ -282,7 +282,7 @@ SUMMARY:Day 20: Cloudflare and DNS Automation
 DTSTART;TZID=America/New_York:20250815T090000
 DTEND;TZID=America/New_York:20250815T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250815-2150
+UID:fks_20250815-2150
 CATEGORIES:Infrastructure
 DESCRIPTION:Tasks:\n- Integrate Cloudflare API in GitHub Actions for DNS u
  pdates\n- Add A records for new services (api.fkstrading.xyz)\n- Test DNS 
@@ -296,7 +296,7 @@ SUMMARY:Day 21: Testing and Security
 DTSTART;TZID=America/New_York:20250816T090000
 DTEND;TZID=America/New_York:20250816T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250816-109
+UID:fks_20250816-109
 CATEGORIES:Testing
 DESCRIPTION:Tasks:\n- Write tests for fks_data\, fks_training\, and fks_tr
  ansformer pages\n- Review Dockerfiles for security best practices (minimiz
@@ -311,7 +311,7 @@ SUMMARY:Day 22: Strategy Library Implementation
 DTSTART;TZID=America/New_York:20250817T090000
 DTEND;TZID=America/New_York:20250817T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250817-7684
+UID:fks_20250817-7684
 CATEGORIES:Development
 DESCRIPTION:Tasks:\n- Create a strategy library for grouping simple strate
  gies into complex ones\n- Allow users to apply strategies to multiple acco
@@ -325,7 +325,7 @@ SUMMARY:Day 23: NinjaTrader Integration
 DTSTART;TZID=America/New_York:20250818T090000
 DTEND;TZID=America/New_York:20250818T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250818-6973
+UID:fks_20250818-6973
 CATEGORIES:Integration
 DESCRIPTION:Tasks:\n- Convert NinjaTrader C# logic to Python for trading e
  xecution\n- Generate C# code from Python for NinjaTrader compatibility\n- 
@@ -339,7 +339,7 @@ SUMMARY:Day 24: Performance Tuning
 DTSTART;TZID=America/New_York:20250819T090000
 DTEND;TZID=America/New_York:20250819T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250819-5399
+UID:fks_20250819-5399
 CATEGORIES:Performance
 DESCRIPTION:Tasks:\n- Optimize Redis and PostgreSQL for real-time data han
  dling\n- Implement caching for frequently accessed data (market data)\n- P
@@ -353,7 +353,7 @@ SUMMARY:Day 25: End-to-End Testing
 DTSTART;TZID=America/New_York:20250820T090000
 DTEND;TZID=America/New_York:20250820T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250820-8652
+UID:fks_20250820-8652
 CATEGORIES:Testing
 DESCRIPTION:Tasks:\n- Perform end-to-end tests for simulated and real-time
   trading workflows\n- Test strategy application across multiple accounts\n
@@ -367,7 +367,7 @@ SUMMARY:Day 26: User Experience Polish
 DTSTART;TZID=America/New_York:20250821T090000
 DTEND;TZID=America/New_York:20250821T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250821-3432
+UID:fks_20250821-3432
 CATEGORIES:Polish
 DESCRIPTION:Tasks:\n- Refine UI/UX with consistent Tailwind styling\n- Add
   tooltips and onboarding guides for new users\n- Ensure accessibility (ARI
@@ -381,7 +381,7 @@ SUMMARY:Day 27: Documentation and Help
 DTSTART;TZID=America/New_York:20250822T090000
 DTEND;TZID=America/New_York:20250822T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250822-2488
+UID:fks_20250822-2488
 CATEGORIES:Documentation
 DESCRIPTION:Tasks:\n- Update Help page with detailed documentation for str
  ategies and trading\n- Create user guides for simulated and real-time work
@@ -395,7 +395,7 @@ SUMMARY:Day 28: Final Bug Fixes
 DTSTART;TZID=America/New_York:20250823T090000
 DTEND;TZID=America/New_York:20250823T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250823-408
+UID:fks_20250823-408
 CATEGORIES:Polish
 DESCRIPTION:Tasks:\n- Address issues found during testing\n- Optimize moda
  l dialogs and error handling\n- Ensure cross-browser compatibility\n\nDeli
@@ -408,7 +408,7 @@ SUMMARY:Day 29: Deployment
 DTSTART;TZID=America/New_York:20250824T090000
 DTEND;TZID=America/New_York:20250824T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250824-3182
+UID:fks_20250824-3182
 CATEGORIES:Deployment
 DESCRIPTION:Tasks:\n- Deploy prototype to staging environment using Docker
   Compose\n- Test deployment with Cloudflare DNS and Nginx routing\n- Verif
@@ -422,7 +422,7 @@ SUMMARY:Day 30: Final Review and Handoff
 DTSTART;TZID=America/New_York:20250825T090000
 DTEND;TZID=America/New_York:20250825T170000
 DTSTAMP:20250811T033431Z
-UID:fks-20250825-16
+UID:fks_20250825-16
 CATEGORIES:Review
 DESCRIPTION:Tasks:\n- Conduct final review with stakeholders\n- Export pro
  ject documentation and calendar events (ICS file)\n- Prepare for future en
@@ -436,7 +436,7 @@ SUMMARY:FKS Daily Standup
 DTSTART;TZID=America/New_York:20250727T083000
 DTEND;TZID=America/New_York:20250727T084500
 DTSTAMP:20250811T033431Z
-UID:fks-daily-standup
+UID:fks_daily-standup
 RRULE:FREQ=DAILY;UNTIL=20250825T235900
 DESCRIPTION:Review progress\, plan day\, identify blockers
 END:VEVENT
@@ -445,7 +445,7 @@ SUMMARY:FKS Weekly Review
 DTSTART;TZID=America/New_York:20250801T173000
 DTEND;TZID=America/New_York:20250801T183000
 DTSTAMP:20250811T033431Z
-UID:fks-weekly-review
+UID:fks_weekly-review
 RRULE:FREQ=WEEKLY;UNTIL=20250825T235900;BYDAY=FR
 DESCRIPTION:Review week progress\, plan next week\, update project health 
  dashboard

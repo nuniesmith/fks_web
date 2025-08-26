@@ -13,7 +13,7 @@ export const ContractAggregateDashboard: React.FC<{ services: string[] }> = ({ s
       const all: SpecState[] = [];
       services.forEach(svc => {
         try {
-          const raw = localStorage.getItem(`fks-contract-${svc}`);
+          const raw = localStorage.getItem(`fks_contract-${svc}`);
           if (!raw) return; const parsed = JSON.parse(raw);
           const latest: Record<string, any> = {};
           (parsed.results || []).forEach((r: any) => { latest[r.id] = r; });
