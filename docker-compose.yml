@@ -2,7 +2,7 @@ services:
   fks_web:
     build:
       context: .
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile
     working_dir: /app/service
     networks: [fks_net]
     healthcheck:
