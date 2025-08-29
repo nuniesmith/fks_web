@@ -2,7 +2,7 @@ services:
   fks_web:
     build:
       context: .
-      dockerfile: shared/shared_docker/templates/node.Dockerfile
+      dockerfile: shared/shared_docker/templates/Dockerfile.node
     working_dir: /app
     command: ["npm", "run", "dev"]
     environment:
