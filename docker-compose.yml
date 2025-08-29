@@ -2,8 +2,21 @@ services:
   fks_web:
     build:
       context: .
-      dockerfile: Dockerfile
-    working_dir: /app/service
+      dockerfile: shared/shared_docker/templates/node.Dockerfile
+    working_dir: /app
+    command: ["npm", "run", "dev"]
+    environment:
+      TZ: America/Toronto
+      NODE_ENV: development
+      VITE_API_BASE_URL: http://localhost:8000
+      PORT: 5173
+    ports:
+      - "5173:5173"
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ./logs:/app/logs
+      - node_modules:/app/node_modules
     networks: [fks_net]
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:5173/ || exit 1"]
@@ -11,6 +24,9 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+volumes:
+  node_modules:
 
 networks:
   fks_net:
