@@ -74,7 +74,9 @@
         "test:ui": "vitest --ui",
         "test:run": "vitest run",
         "test:coverage": "vitest run --coverage",
-        "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "deps:clean": "rm -rf node_modules package-lock.json && npm install --legacy-peer-deps",
+    "deps:audit": "npm ls --depth=2 || true"
     },
     "browserslist": {
         "production": [
