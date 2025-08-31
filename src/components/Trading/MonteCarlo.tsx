@@ -1,17 +1,15 @@
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Tooltip,
-  Legend,
-} from 'chart.js'
 import { AlertTriangle, Play } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
-import { Line } from 'react-chartjs-2'
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  CartesianGrid
+} from 'recharts'
 
 interface RunInputs {
   trials: number
@@ -121,21 +119,19 @@ const MonteCarlo: React.FC = () => {
     setPaths(sim)
   }
 
+  // Transform sample paths (up to 8) into wide table for Recharts: [{step:0,p0:..,p1:..}, ...]
   const chartData = useMemo(() => {
     if (paths.length === 0) return null
-    const labels = Array.from({ length: inputs.steps + 1 }, (_, i) => String(i))
-    const n = Math.min(20, paths.length) // plot up to 20 paths for clarity
-    const ds = paths.slice(0, n).map((p, i) => ({
-      label: `Path ${i + 1}`,
-      data: p,
-      borderColor: `hsla(${(i * 30) % 360}, 70%, 60%, 0.7)`,
-      borderWidth: 1,
-      pointRadius: 0,
-      fill: false,
-      tension: 0.1,
-    }))
-    return { labels, datasets: ds }
-  }, [paths, inputs.steps])
+    const sample = paths.slice(0, 8)
+    const len = sample[0].length
+    const rows: any[] = []
+    for (let i = 0; i < len; i++) {
+      const row: Record<string, number> = { step: i }
+      sample.forEach((p, idx) => { row[`p${idx}`] = p[i] })
+      rows.push(row)
+    }
+    return { rows, count: sample.length }
+  }, [paths])
 
   return (
     <div className="p-6 space-y-6">
@@ -200,12 +196,37 @@ const MonteCarlo: React.FC = () => {
         </div>
       )}
 
-      <div className="glass-card p-2">
+      <div className="glass-card p-4">
         {chartData ? (
-          <Line data={chartData} options={{ responsive: true, plugins: { legend: { display: false }}, scales: { x: { ticks: { color: '#bbb' }}, y: { ticks: { color: '#bbb' }}} }} />
-        ) : (
-          <div className="p-6 text-white/70">Run a simulation to see equity paths.</div>
-        )}
+          <div style={{ width: '100%', height: 340 }}>
+            <ResponsiveContainer>
+              <LineChart data={chartData.rows} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="step" stroke="#94a3b8" fontSize={12} />
+                <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `$${Math.round(v/1000)}k`} />
+                <Tooltip
+                  contentStyle={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
+                  labelFormatter={(s) => `Step ${s}`}
+                  formatter={(val: any, name) => [typeof val === 'number' ? `$${val.toFixed(2)}` : val, name]}
+                />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                {Array.from({ length: chartData.count }).map((_, idx) => (
+                  <Line
+                    key={idx}
+                    type="monotone"
+                    dataKey={`p${idx}`}
+                    stroke={`hsl(${(idx * 40) % 360} 70% 60%)`}
+                    strokeWidth={1.5}
+                    dot={false}
+                    opacity={0.9}
+                    isAnimationActive={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : <div className="p-6 text-white/70">Run a simulation to see equity paths.</div>}
+        <div className="text-[10px] text-white/40 mt-2">Sample of first {chartData?.count ?? 0} paths (full simulation retained in memory)</div>
       </div>
 
       <div className="text-white/60 text-xs flex items-start gap-2">

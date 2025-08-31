@@ -17,6 +17,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
+import MermaidDiagram from '../MermaidDiagram';
 
 import { config } from '../../config/environment';
 import { useUser } from '../../context/UserContext';
@@ -450,6 +451,45 @@ const ArchitectureDashboard: React.FC = () => {
               </p>
             </div>
           )}
+        </div>
+
+        {/* High-Level Architecture (Mermaid) */}
+        <div className="glass-card p-6 mb-10">
+          <h2 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
+            <Code className="h-5 w-5 text-blue-400" /> High-Level System Diagram
+          </h2>
+          <p className="text-white/70 text-sm mb-4">
+            Text-as-code architecture view rendered with Mermaid. Shows primary data & request flows across layers.
+          </p>
+          <MermaidDiagram
+            chart={`flowchart LR
+  subgraph UI[Web UI / React]
+    A[User Browser]
+  end
+  A -->|HTTPS| N[Nginx Gateway]
+  N -->|/api/*| API[Core API]
+  N -->|/predict| ENG[Engine Orchestrator]
+  N --> AUTH[Authentik SSO]
+  AUTH --> API
+  API --> REDIS[(Redis Cluster)]
+  API --> TSDB[(TimescaleDB)]
+  ENG --> DATA[Market Data Service]
+  ENG --> TRF[Transformer Inference]
+  DATA --> TSDB
+  DATA --> REDIS
+  TRF --> DATA
+  classDef ext fill:#334155,stroke:#64748b,color:#f1f5f9,stroke-width:1px;
+  classDef db fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-dasharray:3 3;
+  classDef cache fill:#1e293b,stroke:#f59e0b,color:#ffedd5;
+  classDef svc fill:#1e293b,stroke:#3b82f6,color:#e2e8f0;
+  class API,ENG,DATA,TRF svc;
+  class TSDB db;
+  class REDIS cache;
+  class N,AUTH ext;
+`}
+            className="rounded-md bg-gray-900/60 p-4 border border-white/10"
+            config={{ theme: 'dark' }}
+          />
         </div>
 
         {/* Search Bar */}

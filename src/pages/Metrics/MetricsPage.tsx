@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { usePrometheus } from '../../hooks/usePrometheusMetrics';
+import { usePrometheus } from '../../shared/hooks/usePrometheusMetrics';
 
 const MetricsPage: React.FC = () => {
   let exportText: string | null = null;

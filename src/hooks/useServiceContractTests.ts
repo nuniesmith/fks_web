@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 
-import { usePrometheus } from './usePrometheusMetrics';
+import { usePrometheus } from '../shared/hooks/usePrometheusMetrics';
 
 export interface ContractTestSpec {
   id: string;

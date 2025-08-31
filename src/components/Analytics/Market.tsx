@@ -28,7 +28,7 @@ const Market: React.FC = () => {
                     {asset.categories.map((cat) => (
                       <li key={cat.key}>
                         <span className="text-white/90">{cat.label}</span>
-                        {cat.note && <span className="text-white/50"> — {cat.note}</span>}
+                        {'note' in cat && (cat as any).note && <span className="text-white/50"> — {(cat as any).note}</span>}
                       </li>
                     ))}
                   </ul>

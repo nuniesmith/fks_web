@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { usePrometheus } from '../../hooks/usePrometheusMetrics';
+import { usePrometheus } from '../../shared/hooks/usePrometheusMetrics';
 
 interface SpecState { service: string; spec: string; status: string; latencyMs?: number; updatedAt: number; }
 

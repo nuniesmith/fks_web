@@ -41,6 +41,10 @@ const BacktestRunner: React.FC<BacktestRunnerProps> = ({ embedded = false }) => 
   const [creating, setCreating] = React.useState(false);
   const [currentId, setCurrentId] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<V1BacktestStatus | null>(null);
+  const [globalError, setGlobalError] = React.useState<string | null>(null);
+  const [metrics, setMetrics] = React.useState<Metrics | null>(null);
+  const [results, setResults] = React.useState<V1BacktestResultsResponse | null>(null);
+  const [polling, setPolling] = React.useState(false);
 
     useEffect(() => { (async () => { try { const res = await listSources(); setSources(res.sources || {}); const pref = Object.keys(res.sources || {}).find(id => id.toLowerCase().includes('fks') || id.toLowerCase().includes('yahoo')) || Object.keys(res.sources || {})[0]; if (pref) { setSourceId(pref); const s = res.sources[pref]; if (s?.intervals?.length) setInterval(s.intervals[0]!); } } catch (e: any) { setGlobalError(e?.message || 'Failed to load data sources'); } })(); }, []);
     useEffect(() => { const s = sources[sourceId]; if (s?.intervals?.length) setInterval(prev => (s.intervals!.includes(prev) ? prev : s.intervals![0]!)); setSymbolSuggestions([]); setSymbolQuery(''); }, [sourceId, sources]);
@@ -137,7 +141,43 @@ const BacktestRunner: React.FC<BacktestRunnerProps> = ({ embedded = false }) => 
                   {metrics ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">{['Win Rate','Total Return','Max Drawdown','Sharpe'].map((lbl,i) => { const map = [metrics.winRate.toFixed(1)+'%', metrics.totalReturn.toFixed(2)+'%', metrics.maxDrawdown.toFixed(2)+'%', metrics.sharpeRatio.toFixed(2)]; const color = i===0?'text-green-300': i===1? (metrics.totalReturn>=0?'text-green-300':'text-red-300'): i===2?'text-red-300': (metrics.sharpeRatio>=1.5?'text-green-300':'text-yellow-300'); return <div key={lbl} className="bg-white/5 rounded p-3"><div className="text-white/60 text-xs">{lbl}</div><div className={`text-lg font-bold ${color}`}>{map[i]}</div></div>; })}</div>
                   ) : (<div className="mt-2 text-white/70 text-sm">Preparing summary…</div>)}
-                  <div className="mt-3"><button type="button" onClick={async ()=>{ if(!currentId) return; try { const res = await getBacktestResultsV1(currentId,true,200); setResults(res); setMetrics(mapV1ToSimpleMetrics(res)); } catch (e: any) { setGlobalError(e?.message || 'Failed to fetch results'); } }} className="px-3 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white text-sm">Load details</button>{results && (<button type="button" onClick={()=>{ const blob = new Blob([JSON.stringify(results,null,2)],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download={` ${(results.name||'backtest').replace(/\s+/g,'_')}_${results.backtest_id}.json`}; a.click(); URL.revokeObjectURL(url); }} className="ml-2 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm">Download JSON</button>)}</div>
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!currentId) return;
+                        try {
+                          const res = await getBacktestResultsV1(currentId, true, 200);
+                          setResults(res);
+                          setMetrics(mapV1ToSimpleMetrics(res));
+                        } catch (e: any) {
+                          setGlobalError(e?.message || 'Failed to fetch results');
+                        }
+                      }}
+                      className="px-3 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                    >
+                      Load details
+                    </button>
+                    {results && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!results) return;
+                          const filename = `${(results.name || 'backtest').replace(/\s+/g, '_')}_${results.backtest_id}.json`;
+                          const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = filename;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="ml-2 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white text-sm"
+                      >
+                        Download JSON
+                      </button>
+                    )}
+                  </div>
                   {!embedded && (<div className="mt-4"><a href="/trading/backtests" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded text-white text-sm"><BarChart3 className="w-4 h-4"/>View in Backtests History</a></div>)}
                 </div>
               )}

@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 
-import { PrometheusMetricsProvider, usePrometheus } from '../usePrometheusMetrics';
+import { PrometheusMetricsProvider, usePrometheus } from '../../shared/hooks/usePrometheusMetrics';
 import { useWebVitals } from '@shared';
 
 describe('useWebVitals', () => {

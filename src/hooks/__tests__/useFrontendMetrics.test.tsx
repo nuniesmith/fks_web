@@ -3,7 +3,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { describe, it, expect } from 'vitest';
 
 import { useFrontendMetrics } from '@shared';
-import { PrometheusMetricsProvider, usePrometheus } from '../usePrometheusMetrics';
+import { PrometheusMetricsProvider, usePrometheus } from '../../shared/hooks/usePrometheusMetrics';
 
 describe('useFrontendMetrics', () => {
   it('records route change and error counters', () => {
