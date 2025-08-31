@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom/client';
 
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import './index.css'; // Ensure Tailwind CSS is imported
+// Tailwind & global styles are imported via main.tsx (global.css). Duplicate import removed.
 
 // Ensure the root element exists
 const rootElement = document.getElementById('root');

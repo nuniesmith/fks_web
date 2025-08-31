@@ -14,6 +14,8 @@ interface PortfolioState {
   setIncomeAllocation: (k: keyof PortfolioState['incomeAllocation'], v: number) => void;
   hardwarePubKey: string;
   setHardwarePubKey: (v: string) => void;
+  exportAllocationCSV: () => void;
+  exportIncomeAllocationCSV: () => void;
 }
 
 const clamp = (x: number, a: number, b: number) => Math.max(a, Math.min(b, x));
@@ -62,5 +64,46 @@ export const usePortfolioStore = create<PortfolioState>()(
   },
   setIncomeAllocation: (k, v) => set((s)=> ({ incomeAllocation: { ...s.incomeAllocation, [k]: clamp(Math.round(v), 0, 100) } })),
   setHardwarePubKey: (v) => set({ hardwarePubKey: v }),
+  exportAllocationCSV: () => {
+    const { allocations, phaseView } = get();
+    const total = Object.values(allocations).reduce((s,x)=>s+x,0) || 1;
+    const rows = [
+      ['category','percent','normalized_percent','phase'],
+      ...Object.entries(allocations).map(([k,v])=>[
+        k,
+        String(v),
+        ((v/total)*100).toFixed(2),
+        phaseView
+      ])
+    ];
+    const csv = rows.map(r=>r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `allocations_${phaseView}_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
+  exportIncomeAllocationCSV: () => {
+    const { incomeAllocation } = get();
+    const total = Object.values(incomeAllocation).reduce((s,x)=>s+x,0) || 1;
+    const rows = [
+      ['bucket','percent','normalized_percent'],
+      ...Object.entries(incomeAllocation).map(([k,v])=>[
+        k,
+        String(v),
+        ((v/total)*100).toFixed(2)
+      ])
+    ];
+    const csv = rows.map(r=>r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `income_allocation_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
   }), { name: 'fks_portfolio' })
 );

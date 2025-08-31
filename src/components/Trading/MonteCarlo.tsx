@@ -1,15 +1,6 @@
 import { AlertTriangle, Play } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  CartesianGrid
-} from 'recharts'
+import React, { useMemo, useState, Suspense } from 'react'
+const MonteCarloPathsChart = React.lazy(() => import('./MonteCarloPathsChart'))
 
 interface RunInputs {
   trials: number
@@ -119,18 +110,31 @@ const MonteCarlo: React.FC = () => {
     setPaths(sim)
   }
 
-  // Transform sample paths (up to 8) into wide table for Recharts: [{step:0,p0:..,p1:..}, ...]
+  // Prepare chart rows with percentile band and sample paths (lazy-loaded chart component)
   const chartData = useMemo(() => {
     if (paths.length === 0) return null
-    const sample = paths.slice(0, 8)
-    const len = sample[0].length
+    const sampleCount = Math.min(8, paths.length)
+    const sample = paths.slice(0, sampleCount)
+    const stepsLen = sample[0].length
+    // Precompute per-step percentiles across ALL paths (not just sample)
+    const allLen = paths.length
     const rows: any[] = []
-    for (let i = 0; i < len; i++) {
-      const row: Record<string, number> = { step: i }
-      sample.forEach((p, idx) => { row[`p${idx}`] = p[i] })
+    for (let i = 0; i < stepsLen; i++) {
+      const vals = new Array(allLen)
+      for (let p = 0; p < allLen; p++) vals[p] = paths[p][i]
+      vals.sort((a,b) => a-b)
+      const q = (q: number) => {
+        const pos = (vals.length - 1) * q
+        const base = Math.floor(pos)
+        const rest = pos - base
+        return vals[base] + (vals[base + 1] - vals[base]) * rest || vals[base]
+      }
+      const p5 = q(0.05), p50 = q(0.5), p95 = q(0.95)
+      const row: Record<string, number> = { step: i, p5, p50, p95, bandLow: p5, bandDiff: p95 - p5 }
+      sample.forEach((path, idx) => { row[`p${idx}`] = path[i] })
       rows.push(row)
     }
-    return { rows, count: sample.length }
+    return { rows, count: sampleCount }
   }, [paths])
 
   return (
@@ -198,35 +202,17 @@ const MonteCarlo: React.FC = () => {
 
       <div className="glass-card p-4">
         {chartData ? (
-          <div style={{ width: '100%', height: 340 }}>
-            <ResponsiveContainer>
-              <LineChart data={chartData.rows} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="step" stroke="#94a3b8" fontSize={12} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={(v) => `$${Math.round(v/1000)}k`} />
-                <Tooltip
-                  contentStyle={{ background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
-                  labelFormatter={(s) => `Step ${s}`}
-                  formatter={(val: any, name) => [typeof val === 'number' ? `$${val.toFixed(2)}` : val, name]}
-                />
-                <Legend wrapperStyle={{ fontSize: 10 }} />
-                {Array.from({ length: chartData.count }).map((_, idx) => (
-                  <Line
-                    key={idx}
-                    type="monotone"
-                    dataKey={`p${idx}`}
-                    stroke={`hsl(${(idx * 40) % 360} 70% 60%)`}
-                    strokeWidth={1.5}
-                    dot={false}
-                    opacity={0.9}
-                    isAnimationActive={false}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+          <div style={{ width: '100%', height: 360 }}>
+            <Suspense fallback={<div className="p-6 text-white/60 text-sm">Loading chart...</div>}>
+              <MonteCarloPathsChart rows={chartData.rows as any} sampleCount={chartData.count} />
+            </Suspense>
           </div>
         ) : <div className="p-6 text-white/70">Run a simulation to see equity paths.</div>}
-        <div className="text-[10px] text-white/40 mt-2">Sample of first {chartData?.count ?? 0} paths (full simulation retained in memory)</div>
+        <div className="text-[10px] text-white/40 mt-2 flex flex-wrap gap-2">
+          <span>Sampled paths: {chartData?.count ?? 0}</span>
+          <span>Band: P5 – P95 (shaded)</span>
+          <span>Median line highlighted</span>
+        </div>
       </div>
 
       <div className="text-white/60 text-xs flex items-start gap-2">

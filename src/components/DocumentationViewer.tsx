@@ -1,5 +1,7 @@
 import { FileText, Book, ExternalLink, Search, ChevronRight, Code, Globe, FolderOpen, File } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import AsyncMermaid from './AsyncMermaid';
 
 interface DocFile {
   name: string;
@@ -356,9 +358,25 @@ This document covers the following topics:
                   {/* Document Content */}
                   <div className="prose prose-invert max-w-none">
                     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                      <pre className="whitespace-pre-wrap text-gray-300 font-mono text-sm leading-relaxed">
-                        {selectedDoc.content}
-                      </pre>
+                      <ReactMarkdown
+                        components={{
+                          code({node, className, children, ...props}) {
+                            const txt = String(children)
+                            const match = /language-(\w+)/.exec(className || '')
+                            const lang = match?.[1]
+                            if (lang === 'mermaid') {
+                              return <AsyncMermaid chart={txt} />
+                            }
+                            return <code className={(className || '') + ' text-xs'} {...props}>{children}</code>
+                          },
+                          h1: ({children}) => <h1 className="text-2xl font-bold mt-4 mb-2">{children}</h1>,
+                          h2: ({children}) => <h2 className="text-xl font-semibold mt-6 mb-2">{children}</h2>,
+                          p: ({children}) => <p className="mb-3 leading-relaxed">{children}</p>,
+                          ul: ({children}) => <ul className="list-disc ml-6 mb-3 space-y-1">{children}</ul>
+                        }}
+                      >
+                        {selectedDoc.content || ''}
+                      </ReactMarkdown>
                     </div>
                   </div>
                 </div>

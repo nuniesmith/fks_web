@@ -17,7 +17,8 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
-import MermaidDiagram from '../MermaidDiagram';
+import AsyncMermaid from '../AsyncMermaid';
+import SystemDiagrams from '../SystemDiagrams';
 
 import { config } from '../../config/environment';
 import { useUser } from '../../context/UserContext';
@@ -381,7 +382,7 @@ const ArchitectureDashboard: React.FC = () => {
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+  {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
@@ -461,7 +462,7 @@ const ArchitectureDashboard: React.FC = () => {
           <p className="text-white/70 text-sm mb-4">
             Text-as-code architecture view rendered with Mermaid. Shows primary data & request flows across layers.
           </p>
-          <MermaidDiagram
+          <AsyncMermaid
             chart={`flowchart LR
   subgraph UI[Web UI / React]
     A[User Browser]
@@ -504,6 +505,11 @@ const ArchitectureDashboard: React.FC = () => {
               placeholder="Search services, technologies... (Ctrl+/)"
               className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-400/50 focus:bg-white/15"
             />
+          </div>
+          {/* Supplemental Diagrams */}
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold text-white mb-3 flex items-center gap-2">System Diagrams</h2>
+            <SystemDiagrams />
           </div>
         </div>
 

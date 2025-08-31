@@ -8,7 +8,7 @@ import { usePortfolioStore } from '@/stores/portfolioStore';
 
 const PortfolioPage: React.FC = () => {
 	const { userProgress, updateFinancialSnapshot } = useMilestones();
-	const { allocations, setAllocation, phaseView, setPhaseView, rebalanceSuggestions, normalize, incomeAllocation, setIncomeAllocation, hardwarePubKey, setHardwarePubKey } = usePortfolioStore();
+	const { allocations, setAllocation, phaseView, setPhaseView, rebalanceSuggestions, normalize, incomeAllocation, setIncomeAllocation, hardwarePubKey, setHardwarePubKey, exportAllocationCSV, exportIncomeAllocationCSV } = usePortfolioStore();
 
 	const totals = useMemo(() => {
 		const l = userProgress.financialSnapshot.liquidAssets;
@@ -111,8 +111,9 @@ const PortfolioPage: React.FC = () => {
 								</div>
 							</div>
 						))}
-						<div className="flex justify-end">
-							<button onClick={normalize} className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-white text-sm">Normalize to 100%</button>
+						<div className="flex flex-wrap gap-2 justify-end">
+							<button onClick={normalize} className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-white text-xs">Normalize</button>
+							<button onClick={exportAllocationCSV} className="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white text-xs">Export Alloc CSV</button>
 						</div>
 					</div>
 
@@ -159,7 +160,10 @@ const PortfolioPage: React.FC = () => {
 									</div>
 								</div>
 							))}
-							<div className="text-xs text-gray-400 mt-2">Allocate a % of prop payouts to TFSA/RRSP/Crypto/Questrade.</div>
+							<div className="flex items-center justify-between mt-2">
+								<div className="text-xs text-gray-400">Allocate a % of prop payouts to TFSA/RRSP/Crypto/Questrade.</div>
+								<button onClick={exportIncomeAllocationCSV} className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white text-[10px]">Export CSV</button>
+							</div>
 						</div>
 
 						<div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
