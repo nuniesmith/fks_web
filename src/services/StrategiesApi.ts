@@ -1,4 +1,5 @@
 import { config } from './config'
+import { buildAuthHeaders, authFetch } from './authToken'
 
 export type StrategySummary = {
   id: string
@@ -9,19 +10,11 @@ export type StrategySummary = {
 }
 
 const API_BASE = (config.apiBaseUrl || '/api').replace(/\/$/, '')
-const TOKEN = (import.meta as any).env?.VITE_API_TOKEN || ''
-
-function headers(extra?: HeadersInit): HeadersInit {
-  const h: HeadersInit = { ...(extra || {}) }
-  if (TOKEN) (h as Record<string, string>)['Authorization'] = `Bearer ${TOKEN}`
-  return h
-}
+function headers(extra?: HeadersInit): HeadersInit { return buildAuthHeaders(extra) }
 
 export async function listStrategies(): Promise<StrategySummary[]> {
   try {
-  const res = await fetch(`${API_BASE}/strategies`, { headers: headers() })
-    if (!res.ok) throw new Error('bad status')
-    const j = await res.json()
+  const j = await authFetch<any>(`${API_BASE}/strategies`, { headers: headers() })
     return j.items || j.strategies || []
   } catch {
     return []
@@ -30,20 +23,16 @@ export async function listStrategies(): Promise<StrategySummary[]> {
 
 export async function saveAssignments(assignments: Record<string, string[]>): Promise<boolean> {
   try {
-  const res = await fetch(`${API_BASE}/strategy/assignments`, {
-      method: 'POST',
-      headers: headers({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ assignments })
-    })
-    return res.ok
-  } catch { return false }
+    await authFetch(`${API_BASE}/strategy/assignments`, { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ assignments }) })
+    return true
+  } catch {
+    return false
+  }
 }
 
 export async function getAssignments(): Promise<Record<string, string[]>> {
   try {
-  const res = await fetch(`${API_BASE}/strategy/assignments`, { headers: headers() })
-    if (!res.ok) return {}
-    const j = await res.json().catch(() => ({} as any))
+  const j = await authFetch<any>(`${API_BASE}/strategy/assignments`, { headers: headers() }).catch(() => ({} as any))
     return (j && j.assignments) || {}
   } catch {
     return {}

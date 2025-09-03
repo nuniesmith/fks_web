@@ -221,6 +221,16 @@ export class PerformanceMonitor {
           });
         }
 
+        // Suppress noisy repeated 404s for /api/active-assets (service optional in some environments)
+        if (response.status === 404 && /\/active-assets(\b|\/)/.test(url)) {
+          try {
+            const key = 'fks.logged.active_assets_network_404';
+            if (typeof sessionStorage === 'undefined' || !sessionStorage.getItem(key)) {
+              console.warn('[PerformanceMonitor] 404 for active-assets endpoint (network layer). Further 404s suppressed.');
+              if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, '1');
+            }
+          } catch {}
+        }
         return response;
       } catch (error) {
         const duration = performance.now() - startTime;

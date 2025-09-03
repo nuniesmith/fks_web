@@ -55,6 +55,7 @@ const WebServicePage = React.lazy(() => import('@features/services/pages/WebServ
 const TrainingServicePage = React.lazy(() => import('@features/services/pages/TrainingServicePage'));
 const WorkerServicePage = React.lazy(() => import('@features/services/pages/WorkerServicePage'));
 const MetricsPage = React.lazy(() => import('./pages/Metrics/MetricsPage'));
+const MasterDashboard = React.lazy(() => import('./pages/Master/MasterDashboard'));
 
 // Placeholder page
 const PlaceholderPage: React.FC<{ title: string; description: string; icon: string }> = ({ title, description, icon }) => (
@@ -118,6 +119,13 @@ const App: React.FC = () => {
     <TradingEnvProvider>
       <ServiceHealthProvider>
         <div className="min-h-screen bg-gradient-primary">
+          {/* Auth Disabled Banner (when Authentik / auth intentionally disabled) */}
+          {(() => { try { return localStorage.getItem('fks.disable.auth') === 'true' || (import.meta as any).env?.VITE_DISABLE_AUTH === 'true'; } catch { return false } })() && (
+            <div className="w-full bg-amber-600/80 backdrop-blur-sm text-white text-sm py-2 px-4 flex items-center gap-2 shadow-lg">
+              <span className="font-semibold">Auth Disabled</span>
+              <span className="text-white/80">Running in unsecured local mode – enable authentication for production.</span>
+            </div>
+          )}
           <AppNavigation sections={navSections} isDevelopment={isDevelopment} />
           <main className="pt-24 px-4">
             <div className={`max-w-7xl mx-auto grid grid-cols-1 ${hasSidebar ? 'lg:grid-cols-[240px_minmax(0,1fr)]' : ''} gap-6`}>
@@ -198,6 +206,7 @@ const App: React.FC = () => {
                   <Route path="/milestones" element={<React.Suspense fallback={<LoadingSpinner />}><MilestoneSystem /></React.Suspense>} />
                   <Route path="/milestones-old" element={<React.Suspense fallback={<LoadingSpinner />}><MilestoneTracker /></React.Suspense>} />
                   <Route path="/metrics" element={<React.Suspense fallback={<LoadingSpinner />}><MetricsPage /></React.Suspense>} />
+                  <Route path="/master" element={<ProtectedRoute requireDeveloper><React.Suspense fallback={<LoadingSpinner />}><MasterDashboard /></React.Suspense></ProtectedRoute>} />
 
                   <Route path="*" element={<div className="flex items-center justify-center min-h-screen"><div className="text-center glass-card p-8 max-w-md mx-4"><h1 className="text-4xl font-bold text-white mb-4">404 - Page Not Found</h1><p className="text-white/80 mb-8">The page you're looking for doesn't exist.</p><a href="/" className="btn-primary inline-block">Go Home</a></div></div>} />
                 </Routes>

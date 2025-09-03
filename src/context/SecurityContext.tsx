@@ -16,8 +16,8 @@ interface SecurityContextType {
   
   // Security actions
   initializeSecurity: () => Promise<void>;
-  login: (preferPasskey?: boolean, provider?: 'authelia' | 'google') => Promise<string | void>;
-  completeLogin: (code: string, state: string, provider?: 'authelia' | 'google') => Promise<any>;
+  login: (preferPasskey?: boolean, provider?: 'rust' | 'google') => Promise<string | void>;
+  completeLogin: (code: string, state: string, provider?: 'rust' | 'google') => Promise<any>;
   logout: () => Promise<void>;
   registerPasskey: (deviceName?: string) => Promise<any>;
   validateSecurity: () => Promise<void>;
@@ -32,11 +32,11 @@ interface SecurityProviderProps {
   requirePasskeys?: boolean;
 }
 
-export const SecurityProvider: React.FC<SecurityProviderProps> = ({
+export function SecurityProvider({
   children,
   enforceVPN = true,
   requirePasskeys = false
-}) => {
+}: SecurityProviderProps) {
   const [securityState, securityActions] = useSecurity();
 
   // Persist runtime override for VPN enforcement so lower-level services can honor it
@@ -100,12 +100,8 @@ export const SecurityProvider: React.FC<SecurityProviderProps> = ({
     ...securityActions
   };
 
-  return (
-    <SecurityContext.Provider value={contextValue}>
-      {children}
-    </SecurityContext.Provider>
-  );
-};
+  return <SecurityContext.Provider value={contextValue}>{children}</SecurityContext.Provider>;
+}
 
 export const useSecurityContext = (): SecurityContextType => {
   const context = useContext(SecurityContext);

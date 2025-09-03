@@ -521,6 +521,16 @@ export const APP_SECTIONS: AppSection[] = [
         environment: 'both'
       },
       {
+        id: 'master_orchestration',
+        title: 'Master Orchestration',
+        description: 'Central service orchestration & compose actions',
+        icon: '🧩',
+        path: '/master',
+        component: 'MasterDashboard',
+        environment: 'development',
+        isDeveloperTool: true
+      },
+      {
         id: 'service_monitoring',
         title: 'Service Monitoring',
         description: 'Real-time service health and metrics',

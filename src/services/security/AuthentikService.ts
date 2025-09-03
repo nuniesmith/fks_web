@@ -61,6 +61,13 @@ export class AuthentikService {
     if (this.initialized) return;
 
     try {
+      // Allow explicit disable (build-time or runtime localStorage) to silence warnings entirely
+      const disabled = (import.meta as any).env?.VITE_DISABLE_AUTH === 'true' || (() => { try { return localStorage.getItem('fks.disable.auth') === 'true' } catch { return false } })()
+      if (disabled) {
+        console.info('AuthentikService disabled via VITE_DISABLE_AUTH / fks.disable.auth flag.')
+        this.initialized = true
+        return
+      }
       // In dev, allow running without Authentik configured
       if (!this.baseUrl) {
         console.warn('Authentik URL not configured (VITE_AUTHELIA_URL). Security will run in local mode.');

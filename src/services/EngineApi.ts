@@ -37,29 +37,12 @@ export type EngineBacktestResponse = {
 const API_BASE = (import.meta as any).env?.VITE_API_URL?.replace(/\/$/, '') || ''
 const ENGINE_BASE_RAW = (import.meta as any).env?.VITE_ENGINE_URL as string | undefined
 const ENGINE_BASE = ENGINE_BASE_RAW ? ENGINE_BASE_RAW.replace(/\/$/, '') : API_BASE
-const API_TOKEN = (import.meta as any).env?.VITE_API_TOKEN || ''
+import { buildAuthHeaders, authFetch } from './authToken'
 
-function buildHeaders(extra?: HeadersInit): HeadersInit {
-  const headers: HeadersInit = {
-    ...extra,
-  }
-  if (API_TOKEN) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${API_TOKEN}`
-    ;(headers as Record<string, string>)["X-API-Key"] = API_TOKEN
-  }
-  return headers
-}
+function buildHeaders(extra?: HeadersInit): HeadersInit { return buildAuthHeaders(extra) }
 
 async function http<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    ...init,
-    headers: buildHeaders({ 'Content-Type': 'application/json', ...(init?.headers || {}) }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`)
-  }
-  return res.json() as Promise<T>
+  return authFetch<T>(url, { ...init, headers: buildHeaders({ 'Content-Type': 'application/json', ...(init?.headers || {}) }) })
 }
 
 function buildEngineUrl(path: '/forecast' | '/backtest', qs: URLSearchParams): string {

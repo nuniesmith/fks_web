@@ -1,5 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import mermaid from 'mermaid';
+// Use the lean core build and register only diagrams we actually need.
+// This intentionally excludes heavy optional diagrams (mindmap, architecture) that pull in cytoscape + layouts,
+// and math/KaTeX rendering. Result: drops large cytoscape & katex chunks when those features aren't used.
+let mermaidSingleton: any;
+async function getMermaid() {
+  if (!mermaidSingleton) {
+    // Core build excludes many diagrams; we selectively register common ones.
+  const mod = await import('mermaid');
+  mermaidSingleton = (mod as any).default || mod;
+  }
+  return mermaidSingleton;
+}
 
 interface MermaidDiagramProps {
   chart: string;
@@ -20,8 +31,20 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, className = '', 
     const render = async () => {
       try {
         setError(null);
-        // Initialize once with provided config overrides
-        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark', ...config });
+        const mermaid = await getMermaid();
+        const baseConfig = {
+          startOnLoad: false,
+          securityLevel: 'strict',
+          theme: 'dark',
+          // Attempt to disable math rendering to avoid katex parse; mermaid may still tree-shake unused import.
+          math: { useMathML: false },
+        };
+        if (!mermaid._fksInitialized) {
+          mermaid.initialize({ ...baseConfig, ...config });
+          mermaid._fksInitialized = true;
+        } else if (config) {
+          mermaid.initialize({ ...baseConfig, ...config });
+        }
         const id = 'mermaid-diagram-' + Math.random().toString(36).slice(2);
         const { svg } = await mermaid.render(id, chart);
         if (!cancelled) setSvg(svg);

@@ -17,7 +17,7 @@ import { useRealtime } from '@shared/hooks/useRealtime';
 import { config } from '../../services/config';
 import { realtimeClient } from '@shared/services/realtime/WebSocketService';
 import LiveChannelViewer from '../Realtime/LiveChannelViewer';
-import RealtimeTickerChart from '../Realtime/RealtimeTickerChart';
+import RealtimeTickerChart from '@/features/lazy/RealtimeTickerChartLazy';
 import RecentTicksTable from '../Realtime/RecentTicksTable';
 
 import ActiveAssetsManager from './ActiveAssetsManager';

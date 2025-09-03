@@ -1,5 +1,7 @@
 import React from 'react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+
+// Lazy load heavy recharts primitives via existing pie bundle
+const LazyPie = React.lazy(() => import('../../features/lazy/RechartsPie'));
 
 interface Props { data: Record<string, number>; }
 const palette = ['#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#f59e0b', '#f87171'];
@@ -12,14 +14,9 @@ const AllocationPie: React.FC<Props> = ({ data }) => {
     <div className="p-4 bg-white/5 rounded border border-white/10">
       <h3 className="text-white text-sm font-semibold mb-2">Allocation Breakdown</h3>
       <div className="h-48">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={chartData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} stroke="none">
-              {chartData.map((_, i) => <Cell key={i} fill={palette[i % palette.length]} />)}
-            </Pie>
-            <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155', fontSize: '0.75rem' }} />
-          </PieChart>
-        </ResponsiveContainer>
+        <React.Suspense fallback={<div className="text-xs text-white/50">Loading chart...</div>}>
+          <LazyPie data={chartData} palette={palette} />
+        </React.Suspense>
       </div>
       <ul className="mt-3 grid grid-cols-2 gap-1 text-[11px] text-white/70">
         {chartData.map((d, i) => (

@@ -1,6 +1,7 @@
 // Vite Configuration for FKS Trading Systems
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { visualizer } from 'rollup-plugin-visualizer'
 import path from 'path'
 
 // Helper to derive HMR settings when running behind nginx reverse proxy:
@@ -10,8 +11,13 @@ const devBaseDomain = process.env.VITE_DEV_BASE_DOMAIN || process.env.BASE_DOMAI
 const hmrClientPort = Number(process.env.VITE_HMR_CLIENT_PORT) || (process.env.VITE_ENABLE_SSL === 'true' ? 443 : 80)
 const hmrProtocol = (process.env.VITE_HMR_PROTOCOL || (process.env.VITE_ENABLE_SSL === 'true' ? 'wss' : 'ws')) as 'ws' | 'wss'
 
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: [
+    react(),
+    ...(mode === 'analyze'
+      ? [visualizer({ filename: 'dist/stats.html', template: 'treemap', gzipSize: true, brotliSize: true, open: false })]
+      : [])
+  ],
     resolve: {
       alias: {
         // Prevent bundling the Node-only googleapis package in the browser build
@@ -70,58 +76,54 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        // More granular chunk strategy: keep core libs minimal and split feature domains & heavy libs.
+        // Enhanced chunk strategy: dedicated chunks for heavy libs, grouped commons,
+        // fallback to stable per-package vendor splitting for remaining modules.
         manualChunks(id: string) {
-          // Normalize path for consistency
-          const isModule = id.includes('node_modules');
-          if (isModule) {
-            // Core framework splits
+          if (id.includes('node_modules')) {
+            // Explicit heavy / high-churn libs
             if (id.includes('/node_modules/react-dom/')) return 'react-dom';
             if (id.includes('/node_modules/react/')) return 'react';
-
-            // Time/date libs
-            if (id.includes('/node_modules/date-fns')) return 'date-fns';
-            // moment removed (replaced by dayjs) – keep mapping for any stray transitive
-            if (id.includes('/node_modules/moment')) return 'legacy-moment';
+            if (id.includes('/node_modules/recharts')) return 'recharts';
+            if (id.includes('/node_modules/lightweight-charts')) return 'charts-core';
+            if (id.includes('/node_modules/mermaid')) return 'mermaid';
+            if (id.includes('/node_modules/framer-motion')) return 'motion';
+            if (id.includes('/node_modules/lucide-react')) return 'icons';
+            if (id.includes('/node_modules/axios')) return 'axios';
+            if (id.includes('/node_modules/socket.io-client')) return 'realtime';
+            if (id.includes('/node_modules/zod')) return 'validation';
+            if (id.includes('/node_modules/react-hook-form')) return 'forms';
+            if (id.includes('/node_modules/react-markdown')) return 'markdown';
             if (id.includes('/node_modules/dayjs')) return 'dayjs';
+            if (id.includes('/node_modules/date-fns')) return 'date-fns';
+            if (id.includes('/node_modules/googleapis')) return 'googleapis';
+            if (id.includes('/node_modules/google-auth-library')) return 'google-auth';
 
-            // Charts & visualization
-            if (id.includes('lightweight-charts')) return 'charts-core';
-            if (id.match(/chart\.js/)) return 'chartjs';
-            if (id.match(/recharts/)) return 'recharts';
-
-            // UI / motion / icons
-            if (id.includes('lucide-react')) return 'icons';
-            if (id.includes('framer-motion')) return 'motion';
-
-            // Markdown / text processing
-            if (id.includes('react-markdown')) return 'markdown';
-
-            // Forms & validation
-            if (id.match(/react-hook-form/)) return 'forms';
-            if (id.match(/zod/)) return 'validation';
-
-            // Realtime / sockets
-            if (id.includes('socket.io-client')) return 'realtime';
-
-            // Fallback vendor bucket
+            // Generic per-package fallback (keeps vendor from becoming a mega-bundle)
+            const m = id.match(/node_modules\/(?:@[^/]+\/)?[^/]+/);
+            if (m) {
+              const pkgName = m[0]
+                .replace('node_modules/','')
+                .replace(/@/g,'')
+                .replace(/\//g,'-');
+              return `pkg-${pkgName}`;
+            }
             return 'vendor';
           }
 
-            // Feature-based application source splitting
-            if (id.includes('/src/features/')) {
-              const m = id.match(/\/src\/features\/(\w+)\//);
-              if (m) return `feature-${m[1]}`;
-            }
-            if (id.includes('/components/Trading/')) return 'trading';
-            if (id.includes('/components/Analytics/')) return 'analytics';
-            if (id.includes('/components/Settings/')) return 'settings';
-            if (id.includes('/components/Accounts/')) return 'accounts';
-            if (id.includes('/components/Portfolio/')) return 'portfolio';
-            if (id.includes('/components/FKSServices/')) return 'services';
-            if (id.includes('/components/AI/')) return 'ai';
-            if (id.includes('/components/Milestone')) return 'milestones';
-            if (id.includes('/pages/ProjectManager/')) return 'project-manager';
+          // Application source feature grouping
+          if (id.includes('/src/features/')) {
+            const m = id.match(/\/src\/features\/([A-Za-z0-9_-]+)\//);
+            if (m) return `feature-${m[1]}`;
+          }
+          if (id.includes('/components/Trading/')) return 'trading';
+          if (id.includes('/components/Analytics/')) return 'analytics';
+          if (id.includes('/components/Settings/')) return 'settings';
+          if (id.includes('/components/Accounts/')) return 'accounts';
+          if (id.includes('/components/Portfolio/')) return 'portfolio';
+          if (id.includes('/components/FKSServices/')) return 'services';
+          if (id.includes('/components/AI/')) return 'ai';
+          if (id.includes('/components/Milestone')) return 'milestones';
+          if (id.includes('/pages/ProjectManager/')) return 'project-manager';
           return undefined;
         },
         chunkFileNames: 'assets/[name]-[hash].js',
@@ -136,4 +138,4 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'lightweight-charts']
   }
-})
+}))

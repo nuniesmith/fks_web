@@ -6,7 +6,15 @@ export default {
   ],
   safelist: [
     // Ensure common text color utilities aren't purged while migrating to v4
-    'text-white', 'text-white/50', 'text-white/60', 'text-white/70', 'text-white/80', 'text-white/90'
+    'text-white', 'text-white/50', 'text-white/60', 'text-white/70', 'text-white/80', 'text-white/90',
+    // Dynamic status colors (e.g., generated via runtime mapping)
+    {
+      pattern: /(text|bg|border)-(red|green|yellow|amber|blue|indigo|violet|purple|pink|emerald|cyan|sky)-(50|100|200|300|400|500|600|700|800|900)/,
+    },
+    // Grid / col span utilities used dynamically in dashboards
+    { pattern: /(grid-cols|col-span)-(1|2|3|4|5|6|7|8|9|10|11|12)/ },
+    // Opacity variants for white/black
+    { pattern: /(text|bg)-(white|black)\/(10|20|30|40|50|60|70|80|90)/ },
   ],
   theme: {
     extend: {

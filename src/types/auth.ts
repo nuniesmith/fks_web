@@ -3,7 +3,7 @@
 export interface OAuthProvider {
   id: string;
   name: string;
-  type: 'google' | 'authelia' | 'custom';
+  type: 'google' | 'rust' | 'custom';
   enabled: boolean;
   configuration: OAuthConfiguration;
   status: 'connected' | 'disconnected' | 'error' | 'pending';
@@ -39,7 +39,7 @@ export interface AuthentikOAuthConfig extends OAuthConfiguration {
 }
 
 export interface GroupMapping {
-  autheliaGroup: string;
+  rustGroup?: string; // renamed from autheliaGroup
   applicationRole: string;
   permissions: string[];
 }

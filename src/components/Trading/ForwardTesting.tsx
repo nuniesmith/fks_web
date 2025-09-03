@@ -2,7 +2,7 @@ import { Play, RefreshCw, StopCircle, Settings, Activity } from 'lucide-react';
 import React from 'react';
 
 // Updated to import from feature slice (legacy path still works but we prefer canonical path)
-import TradingChart from '@/features/trading/components/charts/TradingChart';
+import TradingChart from '@/features/lazy/TradingChartLazy';
 
 const ForwardTesting: React.FC = () => {
   const [name, setName] = React.useState('Forward Test Session');

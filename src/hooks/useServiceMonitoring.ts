@@ -35,7 +35,7 @@ export const serviceEndpoints = [
   // Planned / placeholder endpoints (update URLs when services exposed)
   { id: 'worker', url: 'http://localhost:9020/health', name: 'Background Worker', port: 9020 },
   { id: 'training', url: 'http://localhost:9030/health', name: 'Model Training Service', port: 9030 },
-  { id: 'authelia', url: 'http://localhost:9000/-/health/live/', name: 'Authentik SSO', port: 9000 },
+  // Removed authelia service (Authentik SSO) after migration to internal rust auth
   // External / ancillary (placeholder URLs)
   { id: 'cloudflare', url: 'https://cloudflare.com', name: 'Cloudflare Edge', port: undefined },
   { id: 'github', url: 'https://api.github.com', name: 'GitHub API', port: undefined }
@@ -64,6 +64,8 @@ export const useServiceMonitoring = () => {
   const endpoints = [...serviceEndpoints];
 
   const realHealthEnabled = import.meta.env.VITE_ENABLE_REAL_HEALTH === 'true';
+  const centralMonitorBase: string | undefined = (import.meta as any).env.VITE_FKS_MONITOR_URL;
+  const centralEnabled = !!centralMonitorBase; // If provided, prefer aggregated monitor data
 
   const checkServiceHealth = async (endpoint: typeof endpoints[0]): Promise<ServiceStatus> => {
     const startTime = Date.now();
@@ -193,11 +195,11 @@ export const useServiceMonitoring = () => {
           'Active Users': Math.floor(Math.random() * 40 + 10),
           'Page Load': `${(Math.random() * 1 + 0.8).toFixed(2)}s`
         };
-      case 'authelia':
+      case 'rust':
         return {
           ...baseMetrics,
-          'Users': Math.floor(Math.random() * 5 + 2),
-          'Clients': Math.floor(Math.random() * 2 + 1)
+          'Auth Sessions': Math.floor(Math.random() * 5 + 2),
+          'Keys Loaded': Math.floor(Math.random() * 2 + 1)
         };
       default:
         return baseMetrics;
@@ -207,11 +209,62 @@ export const useServiceMonitoring = () => {
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
+  const fetchCentralAggregate = async (): Promise<{
+    services: ServiceStatus[];
+    system: SystemHealth;
+  } | null> => {
+    if (!centralEnabled) return null;
+    try {
+      const resp = await fetch(`${centralMonitorBase.replace(/\/$/, '')}/health/aggregate`, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error(`central monitor http ${resp.status}`);
+      const data = await resp.json();
+      const svc: ServiceStatus[] = (data.services || []).map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        status: (s.status || 'offline'),
+        port: undefined,
+        lastCheck: new Date(s.lastCheck || s.last_check || Date.now()),
+        responseTime: s.responseTimeMs || s.response_time_ms,
+        uptime: undefined,
+        metrics: {
+          Critical: s.critical ? 'yes' : 'no'
+        }
+      }));
+      const system: SystemHealth = {
+        overallStatus: data.overallStatus || 'healthy',
+        totalServices: data.totalServices ?? svc.length,
+        healthyServices: data.healthyServices ?? svc.filter(s => s.status === 'healthy').length,
+        warningServices: data.warningServices ?? svc.filter(s => s.status === 'warning').length,
+        errorServices: data.errorServices ?? svc.filter(s => s.status === 'error').length,
+        offlineServices: data.offlineServices ?? svc.filter(s => s.status === 'offline').length,
+        lastUpdate: new Date(data.lastUpdate || Date.now())
+      };
+      return { services: svc, system };
+    } catch (e) {
+      console.warn('[useServiceMonitoring] central monitor fetch failed, falling back', e);
+      return null;
+    }
+  };
+
   const checkAllServices = async () => {
     if (!mountedRef.current) return;
     setIsLoading(true);
     
     try {
+      // Prefer central aggregate if available
+      const central = await fetchCentralAggregate();
+      if (central) {
+        if (!mountedRef.current) return;
+        setServices(prev => central.services.map(s => {
+          // attempt to retain latency history; compute synthetic history push
+          const prior = prev.find(p => p.id === s.id);
+          const history = prior?.latencyHistory ? [...prior.latencyHistory.slice(-19), s.responseTime || 0] : [s.responseTime || 0];
+          return { ...s, latencyHistory: history };
+        }));
+        setSystemHealth(central.system);
+        return; // skip legacy path
+      }
+
       const serviceStatuses = await Promise.all(
         endpoints.map(async endpoint => {
           const prev = services.find(s => s.id === endpoint.id);

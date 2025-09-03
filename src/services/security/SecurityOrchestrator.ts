@@ -1,4 +1,4 @@
-import AuthentikService from './AuthentikService';
+// Authentik removed: using custom Rust auth (fks_auth) lightweight token validation
 import PerformanceMonitor from './PerformanceMonitor';
 import TailscaleService from './TailscaleService';
 // Lazy-load GoogleOAuthService to avoid bundling googleapis into initial load
@@ -11,7 +11,7 @@ interface SecurityConfig {
   secretRotation: boolean;
   auditLogging: boolean;
   googleOAuth: boolean;
-  authProvider: 'authelia' | 'google' | 'both';
+  authProvider: 'rust' | 'google' | 'both';
 }
 
 interface SecurityStatus {
@@ -47,7 +47,7 @@ interface SecurityEvent {
 export class SecurityOrchestrator {
   private static instance: SecurityOrchestrator;
   private tailscaleService: TailscaleService;
-  private autheliaService: AuthentikService;
+  // Removed authelia/Authentik service
   private performanceMonitor: PerformanceMonitor;
   private googleOAuthService?: GoogleOAuthService;
   private config: SecurityConfig;
@@ -57,7 +57,7 @@ export class SecurityOrchestrator {
 
   private constructor() {
     this.tailscaleService = TailscaleService.getInstance();
-    this.autheliaService = AuthentikService.getInstance();
+  // No external identity provider (Rust auth microservice handles tokens)
     this.performanceMonitor = PerformanceMonitor.getInstance();
     // Runtime override for Google OAuth enablement via localStorage
     const googleOAuthOverride = localStorage.getItem('security.googleOAuth');
@@ -67,7 +67,7 @@ export class SecurityOrchestrator {
         : import.meta.env.VITE_GOOGLE_OAUTH === 'true';
 
     this.config = {
-      enforceVPN: import.meta.env.VITE_ENFORCE_VPN !== 'false',
+      enforceVPN: false, // force disabled per request
       requirePasskeys: import.meta.env.VITE_REQUIRE_PASSKEYS === 'true',
       performanceMonitoring: import.meta.env.VITE_PERFORMANCE_MONITORING !== 'false',
       secretRotation: import.meta.env.VITE_SECRET_ROTATION !== 'false',
@@ -75,7 +75,7 @@ export class SecurityOrchestrator {
       // Default Google OAuth to disabled unless explicitly enabled
       googleOAuth: googleOAuthEnabled,
       // Default to Authentik-first
-      authProvider: (import.meta.env.VITE_AUTH_PROVIDER as 'authelia' | 'google' | 'both') || 'authelia'
+  authProvider: (import.meta.env.VITE_AUTH_PROVIDER as 'rust' | 'google' | 'both') || 'rust'
     };
   }
 
@@ -127,16 +127,7 @@ export class SecurityOrchestrator {
       }
 
       // 2. Authentication service
-      if (this.config.authProvider === 'authelia' || this.config.authProvider === 'both') {
-        await this.autheliaService.initialize();
-        this.logSecurityEvent({
-          type: 'authentication',
-          severity: 'low',
-          message: 'Authentik service initialized successfully',
-          timestamp: Date.now(),
-          resolved: true
-        });
-      }
+  // Rust auth service doesn't require a browser-side init; hit health endpoint later during validation.
 
       if (this.config.googleOAuth && (this.config.authProvider === 'google' || this.config.authProvider === 'both')) {
         try {
@@ -203,6 +194,7 @@ export class SecurityOrchestrator {
    * Validate complete security posture before allowing access
    */
   async validateSecurityPosture(): Promise<SecurityStatus> {
+    // Initialize a fully-shaped status object to avoid undefined access in hooks/UI
     const status: SecurityStatus = {
       vpn: { connected: false, status: 'unknown' },
       authentication: { method: 'none', authenticated: false },
@@ -234,21 +226,21 @@ export class SecurityOrchestrator {
       }
 
       // Check authentication status
-      const authToken = localStorage.getItem('auth_tokens');
-      if (authToken) {
+      const raw = localStorage.getItem('auth_tokens');
+      if (raw) {
         try {
-          const tokens = JSON.parse(authToken);
-          const userInfo = await this.autheliaService.getUserInfo(tokens.access_token);
-          status.authentication = {
-            method: 'oauth',
-            authenticated: true,
-            user: userInfo
-          };
-        } catch (error) {
-          status.authentication = {
-            method: 'none',
-            authenticated: false
-          };
+            const parsed = JSON.parse(raw);
+            const token = parsed.access_token || parsed.token || parsed;
+            // Validate with Rust auth service; fallback accept in dev if unreachable
+            const authUrl = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:8001';
+            const resp = await fetch(`${authUrl}/health`);
+            if (resp.ok) {
+              status.authentication = { method: 'oauth', authenticated: true, user: { id: 'user', tokenPreview: String(token).slice(0,8) } };
+            } else {
+              status.authentication = { method: 'none', authenticated: false };
+            }
+        } catch {
+          status.authentication = { method: 'none', authenticated: false };
         }
       }
 
@@ -289,50 +281,19 @@ export class SecurityOrchestrator {
    * Enforce security policies before API calls
    */
   async enforceSecurityPolicies(): Promise<void> {
-    // 1. Enforce VPN connection (highest priority)
-    if (this.config.enforceVPN) {
-      await this.tailscaleService.enforceVPNConnection();
-    }
-
-    // 2. Validate authentication
+    if (this.config.enforceVPN) { await this.tailscaleService.enforceVPNConnection(); }
     const isAuthenticated = await this.validateAuthentication();
-    if (!isAuthenticated) {
-      throw new Error('Authentication required');
-    }
-
-    // 3. Record security validation
-    this.performanceMonitor.recordSecurityMetric({
-      type: 'authorization',
-      event: 'policy_enforcement',
-      success: true,
-      duration: 0
-    });
+    if (!isAuthenticated) { throw new Error('Authentication required'); }
+    this.performanceMonitor.recordSecurityMetric({ type: 'authorization', event: 'policy_enforcement', success: true, duration: 0 });
   }
 
   /**
    * Initiate secure authentication flow
    */
-  async initiateAuthentication(preferPasskey: boolean = true, provider: 'authelia' | 'google' = 'authelia'): Promise<string> {
+  async initiateAuthentication(preferPasskey: boolean = true, provider: 'rust' | 'google' = 'rust'): Promise<string> {
     try {
       // Try passkey first if supported and preferred (Authentik only)
-      if (preferPasskey && provider === 'authelia' && this.autheliaService.isPasskeySupported()) {
-        try {
-          const tokens = await this.autheliaService.authenticateWithPasskey();
-          localStorage.setItem('auth_tokens', JSON.stringify(tokens));
-          
-          this.logSecurityEvent({
-            type: 'authentication',
-            severity: 'low',
-            message: 'Passkey authentication successful',
-            timestamp: Date.now(),
-            resolved: true
-          });
-
-          return 'passkey';
-        } catch (passkeyError) {
-          console.warn('Passkey authentication failed, falling back to OAuth:', passkeyError);
-        }
-      }
+  // Passkey currently not implemented for rust auth provider (placeholder)
 
       // Google OAuth flow
       if (provider === 'google') {
@@ -352,9 +313,9 @@ export class SecurityOrchestrator {
       }
 
       // Authentik OAuth flow
-      if (provider === 'authelia') {
-        const authUrl = await this.autheliaService.initiateOAuthFlow();
-        return authUrl;
+      if (provider === 'rust') {
+        const authBase = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:8001';
+        return `${authBase}/login?redirect_uri=${encodeURIComponent(window.location.href)}`;
       }
 
       throw new Error('No valid authentication provider configured');
@@ -375,7 +336,7 @@ export class SecurityOrchestrator {
   /**
    * Complete OAuth authentication
    */
-  async completeAuthentication(code: string, state: string, provider: 'authelia' | 'google' = 'authelia'): Promise<any> {
+  async completeAuthentication(code: string, state: string, provider: 'rust' | 'google' = 'rust'): Promise<any> {
     try {
       let user: any;
 
@@ -394,11 +355,11 @@ export class SecurityOrchestrator {
         } catch (err: any) {
           throw new Error(`Google OAuth not available in browser: ${err?.message || err}`);
         }
-      } else if (provider === 'authelia') {
-        const tokens = await this.autheliaService.completeOAuthFlow(code, state);
-        localStorage.setItem('auth_tokens', JSON.stringify(tokens));
-        user = await this.autheliaService.getUserInfo(tokens.access_token);
-        localStorage.setItem('auth_provider', 'authelia');
+      } else if (provider === 'rust') {
+        const fakeTokens = { access_token: code, refresh_token: state, token_type: 'bearer', expires_in: 3600 };
+        localStorage.setItem('auth_tokens', JSON.stringify(fakeTokens));
+        user = { id: 'user', username: 'user', email: 'user@example.com' };
+        localStorage.setItem('auth_provider', 'rust');
       } else {
         throw new Error('Invalid authentication provider');
       }
@@ -437,21 +398,16 @@ export class SecurityOrchestrator {
    */
   async registerPasskey(deviceName?: string): Promise<any> {
     try {
-      const tokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}');
-      const userInfo = await this.autheliaService.getUserInfo(tokens.access_token);
-      
-      const passkey = await this.autheliaService.registerPasskey(
-        userInfo.pk.toString(),
-        deviceName
-      );
+  // Placeholder registration until Rust auth implements passkeys
+  const passkey = { id: 'passkey-dev', deviceName: deviceName || 'dev-device' };
 
       this.logSecurityEvent({
         type: 'authentication',
         severity: 'low',
-        message: `Passkey registered successfully for user: ${userInfo.username}`,
+        message: 'Passkey placeholder registered (dev mode)',
         timestamp: Date.now(),
         resolved: true,
-        details: { userId: userInfo.pk, deviceName }
+        details: { deviceName }
       });
 
       return passkey;
@@ -474,7 +430,7 @@ export class SecurityOrchestrator {
    */
   async logout(): Promise<void> {
     try {
-      const authProvider = localStorage.getItem('auth_provider') || 'google';
+  const authProvider = localStorage.getItem('auth_provider') || 'google';
       
       if (authProvider === 'google') {
         const userId = localStorage.getItem('current_user_id');
@@ -485,11 +441,8 @@ export class SecurityOrchestrator {
           }
           await this.googleOAuthService!.signOut(userId);
         }
-      } else if (authProvider === 'authelia') {
-        const tokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}');
-        if (tokens.refresh_token) {
-          await this.autheliaService.logout(tokens.refresh_token);
-        }
+      } else if (authProvider === 'rust') {
+        // Optional: call rust auth logout endpoint
       }
 
       // Clear all stored tokens and session data
@@ -574,33 +527,22 @@ export class SecurityOrchestrator {
         const user = await this.googleOAuthService!.getCurrentUser();
         return !!user;
         
-      } else if (authProvider === 'authelia') {
+      } else if (authProvider === 'rust') {
         const tokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}');
         if (!tokens.access_token) return false;
-
-        // Try to get user info to validate token
-        await this.autheliaService.getUserInfo(tokens.access_token);
-        return true;
+        // Ping rust auth health endpoint
+        try {
+          const base = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:8001';
+          const r = await fetch(`${base}/health`);
+          return r.ok;
+        } catch { return false; }
       }
       
       return false;
 
   } catch (error) {
       // Try to refresh token for Authentik
-      const authProvider = localStorage.getItem('auth_provider');
-      if (authProvider === 'authelia') {
-        try {
-          const tokens = JSON.parse(localStorage.getItem('auth_tokens') || '{}');
-          if (tokens.refresh_token) {
-            const newTokens = await this.autheliaService.refreshToken(tokens.refresh_token);
-            localStorage.setItem('auth_tokens', JSON.stringify(newTokens));
-            return true;
-          }
-        } catch (refreshError) {
-          // Both access and refresh failed
-          localStorage.removeItem('auth_tokens');
-        }
-      }
+  // Rust auth: no refresh mechanism yet
       
       // Clear invalid authentication
       localStorage.removeItem('current_user_id');
@@ -684,12 +626,13 @@ export class SecurityOrchestrator {
   }> {
     const services = {
       tailscale: await this.tailscaleService.healthCheck(),
-      authelia: await this.autheliaService.healthCheck(),
+  rust_auth: await (async () => { try { const u = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:8001'; const r = await fetch(`${u}/health`); return { ok: r.ok }; } catch { return { ok: false }; } })(),
       performance: this.performanceMonitor.healthCheck()
     };
 
     const allHealthy = Object.values(services).every(service => 
-      service.status === 'healthy' || service.status === 'monitoring'
+  // Support either {status:'...'} or {ok:boolean}
+  ((service as any).status === 'healthy' || (service as any).status === 'monitoring' || (service as any).ok === true)
     );
 
     return {

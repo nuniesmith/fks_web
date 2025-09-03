@@ -1,4 +1,7 @@
 import { Target, TrendingUp, DollarSign, Shield, Settings, BarChart } from 'lucide-react';
+import { ThemeToggle } from '../ThemeToggle';
+import { EnvironmentBadge } from '../EnvironmentBadge';
+import { DensityToggle } from '../DensityToggle';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -44,25 +47,25 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
       title: 'Total XP',
       value: progress.totalXP.toLocaleString(),
       icon: TrendingUp,
-      color: 'text-blue-600'
+  color: 'text-blue-400'
     },
     {
       title: 'Expense Coverage',
       value: `${progress.financialSnapshot.expenseCoverage}%`,
       icon: DollarSign,
-      color: 'text-green-600'
+  color: 'text-green-400'
     },
     {
       title: 'Tax Savings',
       value: `$${progress.financialSnapshot.canadianTaxSavings.toLocaleString()}`,
       icon: Shield,
-      color: 'text-purple-600'
+  color: 'text-purple-400'
     },
     {
       title: 'Active Accounts',
       value: progress.accounts.filter((a: any) => a.status === 'active').length,
       icon: BarChart,
-      color: 'text-orange-600'
+  color: 'text-orange-400'
     }
   ];
 
@@ -134,6 +137,9 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
               <button className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors border border-white/20">
                 <Settings className="h-5 w-5 text-white/80" />
               </button>
+              <ThemeToggle />
+              <DensityToggle />
+              <EnvironmentBadge />
             </div>
           </div>
         </div>
@@ -141,13 +147,19 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {quickStats.map((stat, index) => (
-            <div key={index} className="glass-card p-6">
+            <div
+              key={index}
+              className="glass-card p-6 group transition-transform duration-300 hover:scale-[1.02] focus-within:scale-[1.02] outline-none"
+              tabIndex={0}
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-white/70">{stat.title}</p>
-                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-sm font-medium text-white/70 tracking-wide">{stat.title}</p>
+                  <p className="mt-1 text-2xl font-bold text-white drop-shadow-sm">{stat.value}</p>
                 </div>
-                <stat.icon className={`h-8 w-8 text-blue-400`} />
+                <div className={`p-2 rounded-xl bg-white/10 border border-white/10 shadow-inner group-hover:bg-white/15 group-focus-visible:bg-white/15 transition-colors ${stat.color}`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                </div>
               </div>
             </div>
           ))}

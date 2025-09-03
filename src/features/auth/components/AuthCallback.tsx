@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { useSecurityContext } from '../../../context/SecurityContext';
 
-const AuthCallback: React.FC = () => {
+function AuthCallback() {
   const { completeLogin, loading, error } = useSecurityContext();
   const [message, setMessage] = useState('Completing authentication...');
 
@@ -12,7 +12,7 @@ const AuthCallback: React.FC = () => {
     const state = url.searchParams.get('state');
 
     // Try to infer provider from state if set
-    const provider = state?.includes('google_oauth') ? 'google' : 'authelia';
+  const provider = state?.includes('google_oauth') ? 'google' : 'rust';
 
     if (!code || !state) {
       setMessage('Missing OAuth parameters.');
@@ -21,7 +21,7 @@ const AuthCallback: React.FC = () => {
 
     const run = async () => {
       try {
-        await completeLogin(code, state, provider as 'authelia' | 'google');
+  await completeLogin(code, state, provider as 'rust' | 'google');
         // Navigate back to home or intended page
         window.location.replace('/');
       } catch (e) {
@@ -43,6 +43,6 @@ const AuthCallback: React.FC = () => {
       </div>
     </div>
   );
-};
+}
 
 export default AuthCallback;

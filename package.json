@@ -52,6 +52,7 @@
         "eslint-plugin-unused-imports": "4.2.0",
         "globals": "16.3.0",
         "jsdom": "26.1.0",
+        "rollup-plugin-visualizer": "^5.12.0",
         "vite": "7.1.3",
         "vitest": "3.2.4"
     },
@@ -62,6 +63,7 @@
         "start": "vite",
         "prebuild": "node ./scripts/pre-run.cjs",
         "build": "tsc && vite build",
+        "build:analyze": "tsc && vite build --mode analyze",
         "analyze:why": "npm run build && npx source-map-explorer 'dist/assets/*.js' --html",
         "lint": "eslint \"src/**/*.ts\" \"src/**/*.tsx\" --max-warnings 200",
         "lint:strict": "eslint \"src/**/*.ts\" \"src/**/*.tsx\" --max-warnings 0",

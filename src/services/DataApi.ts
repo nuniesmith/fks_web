@@ -1,5 +1,6 @@
 // Lightweight client for the FKS Data API
 import { config } from './config';
+import { buildAuthHeaders, authFetch } from './authToken';
 export type SourceInfo = {
   id: string
   name: string
@@ -42,29 +43,9 @@ export type SymbolListResponse = {
 const API_BASE = (config.apiBaseUrl || (import.meta as any).env?.VITE_API_URL || '/api').replace(/\/$/, '')
 // Data API is exposed from the Core API under the "/data" prefix (the API base already includes "/api").
 const DATA_API_BASE = API_BASE
-const API_TOKEN = (import.meta as any).env?.VITE_API_TOKEN || ''
-
-function buildHeaders(extra?: HeadersInit): HeadersInit {
-  const headers: HeadersInit = {
-    ...extra,
-  }
-  if (API_TOKEN) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${API_TOKEN}`
-  }
-  return headers
-}
-
 async function http<T>(path: string, init?: RequestInit, base: string = API_BASE): Promise<T> {
   const url = `${base}${path}`
-  const res = await fetch(url, {
-    ...init,
-    headers: buildHeaders({ 'Content-Type': 'application/json', ...(init?.headers || {}) }),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText)
-    throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`)
-  }
-  return res.json() as Promise<T>
+  return authFetch<T>(url, { ...init, headers: buildAuthHeaders({ 'Content-Type': 'application/json', ...(init?.headers || {}) }) })
 }
 
 export async function listSources(): Promise<ListSourcesResponse> {
@@ -108,7 +89,7 @@ export async function downloadMarketDataCsv(
   if (opts.pageToken) params.set('page_token', opts.pageToken)
 
   const url = `${DATA_API_BASE}/data/sources/${encodeURIComponent(sourceId)}/data/${encodeURIComponent(symbol)}?${params.toString()}`
-  const res = await fetch(url, { headers: buildHeaders() })
+  const res = await fetch(url, { headers: buildAuthHeaders() })
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
     throw new Error(`CSV HTTP ${res.status} ${res.statusText}: ${text}`)

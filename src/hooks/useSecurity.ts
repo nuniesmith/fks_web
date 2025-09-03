@@ -14,8 +14,8 @@ interface SecurityState {
 
 interface SecurityActions {
   initializeSecurity: () => Promise<void>;
-  login: (preferPasskey?: boolean, provider?: 'authelia' | 'google') => Promise<string | void>;
-  completeLogin: (code: string, state: string, provider?: 'authelia' | 'google') => Promise<any>;
+  login: (preferPasskey?: boolean, provider?: 'rust' | 'google') => Promise<string | void>;
+  completeLogin: (code: string, state: string, provider?: 'rust' | 'google') => Promise<any>;
   logout: () => Promise<void>;
   registerPasskey: (deviceName?: string) => Promise<any>;
   validateSecurity: () => Promise<void>;
@@ -44,13 +44,14 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
         await securityOrchestrator.initialize();
         const status = await securityOrchestrator.validateSecurityPosture();
         
+        const auth = status?.authentication || { authenticated: false, user: null } as any;
         setState(prev => ({
           ...prev,
           initialized: true,
-          vpnConnected: status.vpn.connected,
-          authenticated: status.authentication.authenticated,
-          user: status.authentication.user || null,
-          securityLevel: status.overall,
+          vpnConnected: status.vpn?.connected ?? true,
+          authenticated: !!auth.authenticated,
+          user: auth.user || null,
+          securityLevel: status.overall || 'critical',
           loading: false
         }));
 
@@ -88,13 +89,14 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
         await securityOrchestrator.initialize();
         const status = await securityOrchestrator.validateSecurityPosture();
         
+        const auth = status?.authentication || { authenticated: false, user: null } as any;
         setState(prev => ({
           ...prev,
           initialized: true,
-          vpnConnected: status.vpn.connected,
-          authenticated: status.authentication.authenticated,
-          user: status.authentication.user || null,
-          securityLevel: status.overall,
+          vpnConnected: status.vpn?.connected ?? true,
+          authenticated: !!auth.authenticated,
+          user: auth.user || null,
+          securityLevel: status.overall || 'critical',
           loading: false
         }));
 
@@ -108,7 +110,7 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
       }
     }, [securityOrchestrator]),
 
-    login: useCallback(async (preferPasskey = true, provider: 'authelia' | 'google' = 'authelia') => {
+  login: useCallback(async (preferPasskey = true, provider: 'rust' | 'google' = 'rust') => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }));
         
@@ -141,7 +143,7 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
       }
     }, [securityOrchestrator]),
 
-    completeLogin: useCallback(async (code: string, state: string, provider: 'authelia' | 'google' = 'authelia') => {
+  completeLogin: useCallback(async (code: string, state: string, provider: 'rust' | 'google' = 'rust') => {
       try {
         setState(prev => ({ ...prev, loading: true, error: null }));
         
@@ -215,12 +217,13 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
         await securityOrchestrator.enforceSecurityPolicies();
         const status = await securityOrchestrator.validateSecurityPosture();
         
+        const auth = status?.authentication || { authenticated: false, user: null } as any;
         setState(prev => ({
           ...prev,
-          vpnConnected: status.vpn.connected,
-          authenticated: status.authentication.authenticated,
-          user: status.authentication.user || null,
-          securityLevel: status.overall
+          vpnConnected: status.vpn?.connected ?? true,
+          authenticated: !!auth.authenticated,
+          user: auth.user || null,
+          securityLevel: status.overall || 'critical'
         }));
 
       } catch (error) {

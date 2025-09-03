@@ -8,6 +8,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { NotificationProvider } from './components/Notifications'
 import { MilestoneProvider } from './context/MilestoneContext'
 import { SecurityProvider } from './context/SecurityContext'
+import { ThemeProvider } from './components/ThemeProvider'
 import { UserProvider } from './context/UserContext'
 import { PrometheusMetricsProvider, usePrometheusPushGateway } from '@shared';
 
@@ -25,23 +26,25 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   {/** Small component to conditionally enable pushgateway */}
   {/** Wrapped inside provider below */}
     
-    <SecurityProvider enforceVPN={false} requirePasskeys={false}>
-      <UserProvider>
-        <MilestoneProvider>
-          <NotificationProvider>
-            <BrowserRouter>
-              <PrometheusMetricsProvider>
-                <EnvMetricsWrapper>
-                  <ErrorBoundary>
-                    <App />
-                  </ErrorBoundary>
-                </EnvMetricsWrapper>
-              </PrometheusMetricsProvider>
-            </BrowserRouter>
-          </NotificationProvider>
-        </MilestoneProvider>
-      </UserProvider>
-    </SecurityProvider>
+    <ThemeProvider>
+      <SecurityProvider enforceVPN={false} requirePasskeys={false}>
+        <UserProvider>
+          <MilestoneProvider>
+            <NotificationProvider>
+              <BrowserRouter>
+                <PrometheusMetricsProvider>
+                  <EnvMetricsWrapper>
+                    <ErrorBoundary>
+                      <App />
+                    </ErrorBoundary>
+                  </EnvMetricsWrapper>
+                </PrometheusMetricsProvider>
+              </BrowserRouter>
+            </NotificationProvider>
+          </MilestoneProvider>
+        </UserProvider>
+      </SecurityProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 )
 

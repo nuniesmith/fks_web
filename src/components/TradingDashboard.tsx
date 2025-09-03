@@ -1,7 +1,7 @@
 import { Activity, BarChart3, Settings, TrendingUp } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
-import TradingChart from './TradingChart';
+import TradingChart from '@/features/lazy/TradingChartLazy';
 
 // Simple card component for this dashboard
 const DashboardCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ 

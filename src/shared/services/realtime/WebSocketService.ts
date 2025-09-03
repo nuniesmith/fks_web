@@ -3,6 +3,7 @@
  * NOTE: Original location now re-exports from here for backward compatibility.
  */
 import { config } from '../../../services/config';
+import { getCurrentAccessToken, refreshAccessToken } from '../../../services/authToken';
 
 type Listener = (msg: any) => void;
 type StatusListener = (status: WSStatus) => void;
@@ -61,13 +62,25 @@ class RealtimeClient {
   private emit(msg: any) { this.listeners.forEach((fn) => { try { fn(msg); } catch {} }); }
   private emitStatus(st: WSStatus) { this.statusListeners.forEach((fn) => { try { fn(st); } catch {} }); }
 
-  private token(): string | undefined {
-    try {
-      const authTokens = localStorage.getItem('auth_tokens');
-      if (authTokens) return (JSON.parse(authTokens)?.access_token as string) || undefined;
-      const ls = localStorage.getItem('fks_api_token');
-      return ls || ((import.meta as any).env?.VITE_API_TOKEN as string | undefined);
-    } catch { return undefined; }
+  private token(): string | undefined { return getCurrentAccessToken(); }
+
+  /** Periodically ensure the socket uses a fresh token (if backend checks on upgrade only, reconnection suffices) */
+  private scheduleTokenRotation() {
+    // Every 4 minutes attempt refresh if we have a refresh token; reconnect if token changed
+    const intervalMs = 240000; // 4 min
+    const loop = async () => {
+      if (this.status === 'closed' || this.status === 'idle') return; // stop when fully closed
+      const before = this.token();
+      // Attempt refresh silently (will no-op if missing refresh token)
+      await refreshAccessToken().catch(()=>undefined);
+      const after = this.token();
+      if (after && before && after !== before) {
+        // Token rotated; reconnect to propagate query token
+        try { this.ws?.close(); } catch {}
+      }
+      setTimeout(loop, intervalMs);
+    };
+    setTimeout(loop, intervalMs);
   }
 
   connect() {
@@ -90,6 +103,7 @@ class RealtimeClient {
       this.backoff = 1000;
       this.wantedChannels.forEach((ch) => this.safeSend({ type: 'subscribe', channel: ch }));
       this.startHeartbeat();
+      this.scheduleTokenRotation();
     };
     this.ws.onclose = () => {
       this.setStatus('closed');
@@ -108,6 +122,13 @@ class RealtimeClient {
       let data: any = ev.data;
       try { data = JSON.parse(ev.data); } catch {}
       if (data && (data.type === 'pong' || data === 'pong')) return;
+      // Detect auth errors from server push and trigger reconnection with refreshed token
+      if (data && (data.type === 'auth_error' || data.code === 401)) {
+        refreshAccessToken().then(newTok => {
+          if (newTok) { try { this.ws?.close(); } catch {} }
+        }).catch(()=>undefined);
+        return;
+      }
       const channel = data?.channel || data?.topic;
       if (channel && this.channels.has(channel)) {
         this.channels.get(channel)!.forEach((fn) => { try { fn(data); } catch {} });

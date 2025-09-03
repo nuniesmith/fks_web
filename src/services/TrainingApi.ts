@@ -1,5 +1,6 @@
 // Lightweight client for the Training Service (v1)
 import { config } from './config';
+import { buildAuthHeaders, authFetch } from './authToken';
 
 export type TrainRequest = {
   data_file: string;
@@ -44,26 +45,11 @@ function getApiKey(): string | undefined {
   }
 }
 
-function buildHeaders(extra?: HeadersInit): HeadersInit {
-  const headers: HeadersInit = { 'Content-Type': 'application/json', ...(extra || {}) };
-  const apiKey = getApiKey();
-  if (apiKey) {
-    // FastAPI Header('api_key') expects header name 'api-key'
-    (headers as Record<string, string>)['api-key'] = apiKey;
-    (headers as Record<string, string>)['X-API-Key'] = apiKey;
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${apiKey}`;
-  }
-  return headers;
-}
+function buildHeaders(extra?: HeadersInit): HeadersInit { return buildAuthHeaders({ 'Content-Type': 'application/json', ...(extra || {}) }) }
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${TRAINING_BASE}${path}`;
-  const res = await fetch(url, { ...init, headers: buildHeaders(init?.headers) });
-  if (!res.ok) {
-    const text = await res.text().catch(() => res.statusText);
-    throw new Error(`HTTP ${res.status} ${res.statusText}: ${text}`);
-  }
-  return res.json() as Promise<T>;
+  return authFetch<T>(url, { ...init, headers: buildHeaders(init?.headers) });
 }
 
 export async function startTraining(req: TrainRequest): Promise<TrainStartResponse> {

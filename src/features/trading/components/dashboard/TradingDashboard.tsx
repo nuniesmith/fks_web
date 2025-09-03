@@ -9,7 +9,8 @@ interface TradingDashboardProps { userAccounts?: any[] }
 
 const TradingDashboard: React.FC<TradingDashboardProps> = ({ userAccounts }) => {
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
-  const { focus, setFocus, sim, live, start, pause, stop, readiness } = useTradingEnv();
+  const { focus, setFocus, sim, live, start, pause, stop, readiness, assetsSource, assetsWarning, hasActiveAssetsRoute } = useTradingEnv();
+  const showAssetsWarning = assetsSource !== 'api' && hasActiveAssetsRoute !== false; // suppress if route known absent
 
   const mockTradingData = {
     activeTrades: [
@@ -47,6 +48,12 @@ const TradingDashboard: React.FC<TradingDashboardProps> = ({ userAccounts }) => 
           </div>
         </div>
         <StrategyAssignments />
+        {showAssetsWarning && (
+          <div className="mt-4 p-3 rounded-md border border-yellow-500/40 bg-yellow-500/10 text-yellow-200 text-xs">
+            <strong className="mr-1">Active Assets Fallback:</strong>
+            Using <code className="text-yellow-300">{assetsSource}</code> source{assetsWarning ? ` (${assetsWarning})` : ''}. API endpoint <code className="text-yellow-300">/api/active-assets</code> not available.
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="glass-card p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-white/70">Total Balance</p><p className="text-2xl font-bold text-white">${mockTradingData.accountOverview.totalBalance.toLocaleString()}</p></div><DollarSign className="h-8 w-8 text-green-400" /></div></div>
           <div className="glass-card p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-white/70">Equity</p><p className="text-2xl font-bold text-white">${mockTradingData.accountOverview.equity.toLocaleString()}</p></div><TrendingUp className="h-8 w-8 text-blue-400" /></div></div>

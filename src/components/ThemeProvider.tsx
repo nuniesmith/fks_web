@@ -22,21 +22,27 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const stored = localStorage.getItem('fks.ui.theme') as Theme | null
+      if (stored) return stored
+      // System preference: if prefers dark, start dark, else trading gradient
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark'
+      return 'trading'
+    } catch { return 'trading' }
+  });
 
   useEffect(() => {
-    // Apply theme to document
+    try { localStorage.setItem('fks.ui.theme', theme) } catch {}
     const root = document.documentElement;
     root.classList.remove('light', 'dark', 'trading');
     root.classList.add(theme);
-    
-    // Update the data-theme attribute for CSS custom properties
     root.setAttribute('data-theme', theme);
   }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
-      <div className={`theme-${theme} min-h-screen transition-all duration-500 ease-in-out`}>
+      <div className={`theme-${theme} min-h-screen transition-colors duration-500 ease-in-out`}>
         {children}
       </div>
     </ThemeContext.Provider>
