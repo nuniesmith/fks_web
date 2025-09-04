@@ -1,9 +1,7 @@
 import React from 'react';
+// Re-export the unified LoginPage implemented under components/Auth
+import UnifiedLoginPage from '../../../components/Auth/LoginPage';
 
-import SimpleLoginForm from './SimpleLoginForm';
-// Legacy external auth selector retained for future toggle
-// import AuthenticationSelector from './AuthenticationSelector'
-
-const LoginPage: React.FC = () => <SimpleLoginForm />;
+const LoginPage: React.FC = () => <UnifiedLoginPage />;
 
 export default LoginPage;

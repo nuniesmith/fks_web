@@ -65,5 +65,18 @@ export default [
         ]
       }]
     }
+  },
+  // Stricter rules applying only to explicitly opted-in modernized files
+  {
+    files: [
+      'src/components/layout/**/*.{ts,tsx}',
+      'src/components/stats/**/*.{ts,tsx}',
+      'src/pages/Home/HomePage.tsx'
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': ['error'],
+      '@typescript-eslint/explicit-function-return-type': ['warn', { allowExpressions: true }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }]
+    }
   }
 ]

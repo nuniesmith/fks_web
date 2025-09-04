@@ -3,6 +3,7 @@
 import FeatureBoundary from '@features/core/FeatureBoundary';
 import AppNavigation from '@features/navigation/components/AppNavigation';
 import SectionSidebar from '@features/navigation/components/SectionSidebar';
+import LayoutShell from '@layout/LayoutShell';
 import React, { useMemo } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
@@ -118,7 +119,7 @@ const App: React.FC = () => {
   return (
     <TradingEnvProvider>
       <ServiceHealthProvider>
-        <div className="min-h-screen bg-gradient-primary">
+  <div className="min-h-screen bg-gradient-primary">
           {/* Auth Disabled Banner (when Authentik / auth intentionally disabled) */}
           {(() => { try { return localStorage.getItem('fks.disable.auth') === 'true' || (import.meta as any).env?.VITE_DISABLE_AUTH === 'true'; } catch { return false } })() && (
             <div className="w-full bg-amber-600/80 backdrop-blur-sm text-white text-sm py-2 px-4 flex items-center gap-2 shadow-lg">
@@ -126,11 +127,11 @@ const App: React.FC = () => {
               <span className="text-white/80">Running in unsecured local mode – enable authentication for production.</span>
             </div>
           )}
+          <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-blue-600 text-white px-4 py-2 rounded z-50">Skip to content</a>
           <AppNavigation sections={navSections} isDevelopment={isDevelopment} />
-          <main className="pt-24 px-4">
-            <div className={`max-w-7xl mx-auto grid grid-cols-1 ${hasSidebar ? 'lg:grid-cols-[240px_minmax(0,1fr)]' : ''} gap-6`}>
-              {hasSidebar && <SectionSidebar isDevelopment={isDevelopment} />}
-              <div>
+          {/* Main application shell */}
+          <main id="main" className="app-shell px-4" role="main" aria-label="Main content">
+            <LayoutShell sidebar={hasSidebar ? <SectionSidebar isDevelopment={isDevelopment} /> : undefined}>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/login" element={<React.Suspense fallback={<LoadingSpinner />}><LoginPage /></React.Suspense>} />
@@ -139,6 +140,8 @@ const App: React.FC = () => {
                   {/* Architecture */}
                   <Route path="/architecture" element={<React.Suspense fallback={<LoadingSpinner />}><ArchitectureDashboard /></React.Suspense>} />
                   <Route path="/architecture/health" element={<React.Suspense fallback={<LoadingSpinner />}><ServiceHealthPage /></React.Suspense>} />
+                  {/* Legacy alias */}
+                  <Route path="/architecture/monitoring" element={<Navigate to="/architecture/health" replace />} />
                   <Route path="/architecture/diagnostics" element={<ProtectedRoute requireDeveloper><React.Suspense fallback={<LoadingSpinner />}><DiagnosticsPage /></React.Suspense></ProtectedRoute>} />
                   <Route path="/architecture/guide" element={<ProtectedRoute requireDeveloper><PlaceholderPage title="Development Guide" description="📚 Guidance for extending and developing the system (dev only)." icon="📚" /></ProtectedRoute>} />
 
@@ -171,17 +174,26 @@ const App: React.FC = () => {
                   <Route path="/settings/notifications" element={<PlaceholderPage title="Notifications" description="🔔 Configure notification preferences (coming soon)." icon="🔔" />} />
                   <Route path="/settings/developer" element={<ProtectedRoute requireDeveloper><PlaceholderPage title="Developer Tools" description="🛠️ Advanced configuration and debugging tools (dev only)." icon="🛠️" /></ProtectedRoute>} />
 
-                  {/* Trading */}
+                  {/* Trading core + history */}
                   <Route path="/trading/dashboard" element={<React.Suspense fallback={<LoadingSpinner />}><TradingDashboard /></React.Suspense>} />
-                  <Route path="/trading/strategies" element={<React.Suspense fallback={<LoadingSpinner />}><StrategyLibrary /></React.Suspense>} />
-                  <Route path="/trading/strategies/development" element={<ProtectedRoute requireDeveloper><React.Suspense fallback={<LoadingSpinner />}><StrategyDevelopment /></React.Suspense></ProtectedRoute>} />
+                  {/* Live/paper/analysis placeholders to avoid 404s */}
+                  <Route path="/trading/live" element={<PlaceholderPage title="Live Trading" description="⚡ Real-time trading interface (coming soon)." icon="⚡" />} />
+                  <Route path="/trading/analysis" element={<PlaceholderPage title="Market Analysis" description="🔍 Technical & fundamental analysis tools (coming soon)." icon="🔍" />} />
+                  <Route path="/trading/paper" element={<PlaceholderPage title="Paper Trading" description="📝 Practice with virtual funds (coming soon)." icon="📝" />} />
+                  <Route path="/trading/debug" element={<ProtectedRoute requireDeveloper><PlaceholderPage title="Trading Debug Tools" description="🧪 Developer diagnostics for trading engine (dev only)." icon="🧪" /></ProtectedRoute>} />
                   <Route path="/trading/backtests" element={<React.Suspense fallback={<LoadingSpinner />}><BacktestsHistory /></React.Suspense>} />
                   <Route path="/trading/backtests/run" element={<ProtectedRoute requireDeveloper><React.Suspense fallback={<LoadingSpinner />}><BacktestRunner /></React.Suspense></ProtectedRoute>} />
-                  <Route path="/trading/forward-testing" element={<React.Suspense fallback={<LoadingSpinner />}><ForwardTesting /></React.Suspense>} />
-                  <Route path="/trading/monte-carlo" element={<React.Suspense fallback={<LoadingSpinner />}><MonteCarlo /></React.Suspense>} />
+                  {/* Strategy research & tooling (corrected paths) */}
                   <Route path="/strategy" element={<StrategyOverview />} />
                   <Route path="/strategy/builder" element={<React.Suspense fallback={<LoadingSpinner />}><StrategyBuilder /></React.Suspense>} />
                   <Route path="/strategy/backtesting" element={<React.Suspense fallback={<LoadingSpinner />}><StrategyBacktesting /></React.Suspense>} />
+                  <Route path="/strategy/forward-test" element={<React.Suspense fallback={<LoadingSpinner />}><ForwardTesting /></React.Suspense>} />
+                  <Route path="/strategy/monte-carlo" element={<React.Suspense fallback={<LoadingSpinner />}><MonteCarlo /></React.Suspense>} />
+                  <Route path="/strategy/validation" element={<PlaceholderPage title="Strategy Validation" description="✅ Production readiness validation (coming soon)." icon="✅" />} />
+                  <Route path="/strategy/debug" element={<ProtectedRoute requireDeveloper><PlaceholderPage title="Strategy Debug Console" description="🐛 Advanced performance & debugging (dev only)." icon="🐛" /></ProtectedRoute>} />
+                  {/* Backwards compatibility redirects */}
+                  <Route path="/trading/forward-testing" element={<Navigate to="/strategy/forward-test" replace />} />
+                  <Route path="/trading/monte-carlo" element={<Navigate to="/strategy/monte-carlo" replace />} />
 
                   {/* Analytics (wrapped with FeatureBoundary) */}
                   <Route path="/analytics" element={<FeatureBoundary><AnalyticsOverview /></FeatureBoundary>} />
@@ -193,14 +205,22 @@ const App: React.FC = () => {
                   {/* Portfolio & Tax (wrapped with FeatureBoundary) */}
                   <Route path="/portfolio" element={<FeatureBoundary><PortfolioPage /></FeatureBoundary>} />
                   <Route path="/tax" element={<React.Suspense fallback={<LoadingSpinner />}><TaxOptimization /></React.Suspense>} />
+                  {/* Tax subsection placeholders / redirects */}
+                  <Route path="/tax/dashboard" element={<Navigate to="/tax" replace />} />
+                  <Route path="/tax/contributions" element={<PlaceholderPage title="Contribution Tracker" description="💡 Track TFSA / RRSP contributions (coming soon)." icon="💡" />} />
+                  <Route path="/tax/reporting" element={<PlaceholderPage title="Tax Reporting" description="📋 Generate Canada-focused tax reports (coming soon)." icon="📋" />} />
 
                   {/* Calendars */}
                   <Route path="/calendar/dev" element={<React.Suspense fallback={<LoadingSpinner />}><DevCalendar /></React.Suspense>} />
+                  <Route path="/calendar/plan" element={<Navigate to="/calendar/dev" replace />} />
+                  <Route path="/calendar" element={<Navigate to="/calendar/dev" replace />} />
                   <Route path="/calendar/ics" element={<React.Suspense fallback={<LoadingSpinner />}><IcsCalendar /></React.Suspense>} />
 
                   {/* Communication & AI */}
                   <Route path="/discord" element={<React.Suspense fallback={<LoadingSpinner />}><DiscordChat /></React.Suspense>} />
                   <Route path="/assistant" element={<React.Suspense fallback={<LoadingSpinner />}><AIAssistant /></React.Suspense>} />
+                  <Route path="/chat/discord" element={<Navigate to="/discord" replace />} />
+                  <Route path="/ai/assistant" element={<Navigate to="/assistant" replace />} />
 
                   {/* Milestones & Metrics */}
                   <Route path="/milestones" element={<React.Suspense fallback={<LoadingSpinner />}><MilestoneSystem /></React.Suspense>} />
@@ -210,8 +230,7 @@ const App: React.FC = () => {
 
                   <Route path="*" element={<div className="flex items-center justify-center min-h-screen"><div className="text-center glass-card p-8 max-w-md mx-4"><h1 className="text-4xl font-bold text-white mb-4">404 - Page Not Found</h1><p className="text-white/80 mb-8">The page you're looking for doesn't exist.</p><a href="/" className="btn-primary inline-block">Go Home</a></div></div>} />
                 </Routes>
-              </div>
-            </div>
+            </LayoutShell>
           </main>
         </div>
       </ServiceHealthProvider>

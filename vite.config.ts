@@ -25,6 +25,9 @@ export default defineConfig(({ mode }) => ({
   '@': path.resolve(__dirname, 'src'),
   '@features': path.resolve(__dirname, 'src/features'),
   '@shared': path.resolve(__dirname, 'src/shared'),
+  '@layout': path.resolve(__dirname, 'src/components/layout'),
+  '@stats': path.resolve(__dirname, 'src/components/stats'),
+  '@providers': path.resolve(__dirname, 'src/context'),
       },
     },
   server: {
@@ -83,9 +86,15 @@ export default defineConfig(({ mode }) => ({
             // Explicit heavy / high-churn libs
             if (id.includes('/node_modules/react-dom/')) return 'react-dom';
             if (id.includes('/node_modules/react/')) return 'react';
-            if (id.includes('/node_modules/recharts')) return 'recharts';
+            // Break recharts primitives into a smaller chart chunk
+            if (id.includes('/node_modules/recharts')) return 'recharts-core';
             if (id.includes('/node_modules/lightweight-charts')) return 'charts-core';
-            if (id.includes('/node_modules/mermaid')) return 'mermaid';
+            // Slice mermaid into smaller semantic buckets to avoid a >1MB monolith
+            if (id.includes('/node_modules/mermaid/dist/')) {
+              if (id.match(/mermaid\/dist\/(parser|diagram)/)) return 'mermaid-diagram';
+              if (id.match(/mermaid\/dist\/(mermaid|render)/)) return 'mermaid-render';
+              return 'mermaid-core';
+            }
             if (id.includes('/node_modules/framer-motion')) return 'motion';
             if (id.includes('/node_modules/lucide-react')) return 'icons';
             if (id.includes('/node_modules/axios')) return 'axios';
@@ -130,12 +139,15 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]'
       }
+  , external: ['mermaid']
     }
   },
   define: {
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version)
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'lightweight-charts']
+    include: ['react', 'react-dom', 'lightweight-charts'],
+    // Exclude mermaid so it stays fully dynamic + tree-shaken parts not touched
+    exclude: ['mermaid']
   }
 }))

@@ -31,27 +31,20 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn(),
-} as Storage
-global.localStorage = localStorageMock
-
-// Mock sessionStorage
-const sessionStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-  length: 0,
-  key: vi.fn(),
-} as Storage
-global.sessionStorage = sessionStorageMock
+// In-memory localStorage/sessionStorage implementations (stateful across calls in a test)
+function createMemoryStorage() {
+  let store: Record<string, string> = {}
+  return {
+    getItem: vi.fn((k: string) => (k in store ? store[k] : null)),
+    setItem: vi.fn((k: string, v: string) => { store[k] = String(v) }),
+    removeItem: vi.fn((k: string) => { delete store[k] }),
+    clear: vi.fn(() => { store = {} }),
+    key: vi.fn((i: number) => Object.keys(store)[i] ?? null),
+    get length() { return Object.keys(store).length }
+  } as unknown as Storage
+}
+global.localStorage = createMemoryStorage()
+global.sessionStorage = createMemoryStorage()
 
 // Mock console methods for cleaner test output
 const consoleMock = {

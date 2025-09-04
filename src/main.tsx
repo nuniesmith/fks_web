@@ -11,6 +11,7 @@ import { SecurityProvider } from './context/SecurityContext'
 import { ThemeProvider } from './components/ThemeProvider'
 import { UserProvider } from './context/UserContext'
 import { PrometheusMetricsProvider, usePrometheusPushGateway } from '@shared';
+import { UISettingsProvider } from './context/UISettingsContext';
 
 const EnvMetricsWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const url = (import.meta as any).env?.VITE_PUSHGATEWAY_URL;
@@ -35,7 +36,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <PrometheusMetricsProvider>
                   <EnvMetricsWrapper>
                     <ErrorBoundary>
-                      <App />
+                      <UISettingsProvider>
+                        <App />
+                      </UISettingsProvider>
                     </ErrorBoundary>
                   </EnvMetricsWrapper>
                 </PrometheusMetricsProvider>

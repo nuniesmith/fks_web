@@ -24,7 +24,10 @@ export default defineConfig({
       '@utils': '/src/utils',
       '@types': '/src/types',
       '@features': '/src/features',
-      '@shared': '/src/shared'
+  '@shared': '/src/shared',
+  '@layout': '/src/components/layout',
+  '@stats': '/src/components/stats',
+  '@providers': '/src/context'
     }
   }
 });

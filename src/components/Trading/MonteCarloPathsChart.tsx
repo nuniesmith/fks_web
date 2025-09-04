@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
-// Dynamically imported heavy recharts primitives colocated in one lazy chunk
-const LazyChartBundle = React.lazy(() => import('../../features/lazy/RechartsMonteCarlo'));
+// Use slimmer MonteCarlo core chart micro-chunk
+const LazyChartBundle = React.lazy(() => import('../../features/lazy/recharts-parts/MonteCarloCore'));
 
 export interface MonteCarloChartRow {
   step: number;

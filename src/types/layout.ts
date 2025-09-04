@@ -92,7 +92,7 @@ export const APP_SECTIONS: AppSection[] = [
         title: 'Forward Testing',
         description: 'Test strategies in staging environment',
         icon: '⏭️',
-        path: '/strategy/forward-test',
+  path: '/strategy/forward-test',
         component: 'ForwardTesting',
         environment: 'both'
       },
@@ -110,7 +110,7 @@ export const APP_SECTIONS: AppSection[] = [
         title: 'Monte Carlo',
         description: 'Simulate equity paths and drawdown risk',
         icon: '🎲',
-        path: '/strategy/monte-carlo',
+  path: '/strategy/monte-carlo',
         component: 'MonteCarlo',
         environment: 'both'
       },
@@ -256,7 +256,7 @@ export const APP_SECTIONS: AppSection[] = [
         title: 'Tax Dashboard',
         description: 'Overview of tax situation and savings',
         icon: '🏛️',
-        path: '/tax/dashboard',
+  path: '/tax/dashboard',
         component: 'TaxDashboard',
         environment: 'both'
       },
@@ -428,7 +428,7 @@ export const APP_SECTIONS: AppSection[] = [
         title: 'Calendar Integration',
         description: 'Google Calendar API integration',
         icon: '📅',
-        path: '/settings/calendar',
+  path: '/settings/calendar',
         component: 'CalendarIntegration',
         environment: 'both'
       },

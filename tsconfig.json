@@ -34,7 +34,10 @@
             "@/api/*": ["./src/api/*"],
             "@features/*": ["./src/features/*"],
             "@shared/*": ["./src/shared/*", "./shared/react/src/*"],
-            "@shared": ["./src/shared/index.ts"]
+            "@shared": ["./src/shared/index.ts"],
+            "@layout/*": ["./src/components/layout/*"],
+            "@stats/*": ["./src/components/stats/*"],
+            "@providers/*": ["./src/context/*"]
         }
     },
     "include": [

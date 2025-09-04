@@ -4,16 +4,19 @@ import AuthentikService from './security/AuthentikService'
 
 /** Get the best current access token from localStorage or environment */
 export function getCurrentAccessToken(): string | undefined {
+  // jsdom provides localStorage, no need for window guard in tests.
   try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('auth_tokens') : null
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed?.access_token) return parsed.access_token as string
+    const ls: Storage | undefined = (globalThis as any)?.localStorage
+    if (ls) {
+      const raw = ls.getItem('auth_tokens')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.access_token) return parsed.access_token as string
+      }
+      const legacy = ls.getItem('fks_api_token')
+      if (legacy) return legacy
     }
-  } catch {}
-  try {
-    const ls = typeof window !== 'undefined' ? localStorage.getItem('fks_api_token') : null
-    return ls || (import.meta as any).env?.VITE_API_TOKEN
+    return (import.meta as any).env?.VITE_API_TOKEN
   } catch {
     return (import.meta as any).env?.VITE_API_TOKEN
   }

@@ -14,6 +14,7 @@ import { MilestoneProvider } from '../context/MilestoneContext'
 import SecurityContext from '../context/SecurityContext'
 import { TradingEnvProvider } from '../context/TradingEnvContext'
 import { UserProvider } from '../context/UserContext'
+import { UISettingsProvider } from '../context/UISettingsContext'
 
 // Mock providers for testing
 // Optionally wrap with real provider; for now keep a simple wrapper to avoid session side-effects.
@@ -61,7 +62,9 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
             <MockThemeProvider>
               <MockNotificationProvider>
                 <MockApiProvider>
-                  {children}
+                  <UISettingsProvider>
+                    {children}
+                  </UISettingsProvider>
                 </MockApiProvider>
               </MockNotificationProvider>
             </MockThemeProvider>

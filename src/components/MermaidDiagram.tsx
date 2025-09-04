@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-// Use the lean core build and register only diagrams we actually need.
-// This intentionally excludes heavy optional diagrams (mindmap, architecture) that pull in cytoscape + layouts,
-// and math/KaTeX rendering. Result: drops large cytoscape & katex chunks when those features aren't used.
-let mermaidSingleton: any;
+// Runtime CDN loader to keep mermaid out of the bundle entirely.
+// Falls back gracefully if offline. Version pin for reproducibility.
+const MERMAID_VERSION = '11.3.0';
+const MERMAID_CDN = `https://cdn.jsdelivr.net/npm/mermaid@${MERMAID_VERSION}/dist/mermaid.esm.min.mjs`;
+let mermaidPromise: Promise<any> | null = null;
 async function getMermaid() {
-  if (!mermaidSingleton) {
-    // Core build excludes many diagrams; we selectively register common ones.
-  const mod = await import('mermaid');
-  mermaidSingleton = (mod as any).default || mod;
-  }
-  return mermaidSingleton;
+  if (mermaidPromise) return mermaidPromise;
+  mermaidPromise = (async () => {
+    // Use dynamic import with a fully-qualified URL (supported by modern bundlers) –
+    // ensures exclusion from local build graph.
+    const mod = await import(/* @vite-ignore */ MERMAID_CDN);
+    return (mod as any).default || mod;
+  })();
+  return mermaidPromise;
 }
 
 interface MermaidDiagramProps {
@@ -31,7 +34,7 @@ const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, className = '', 
     const render = async () => {
       try {
         setError(null);
-        const mermaid = await getMermaid();
+  const mermaid = await getMermaid();
         const baseConfig = {
           startOnLoad: false,
           securityLevel: 'strict',

@@ -1,11 +1,25 @@
+import StatTile from '@stats/StatTile';
 import { Target, TrendingUp, DollarSign, Shield, Settings, BarChart } from 'lucide-react';
+import LazyReveal from '../../components/LazyReveal';
 import React from 'react';
+import { useUISettings } from '../../context/UISettingsContext';
 import { Link } from 'react-router-dom';
 
 import { APP_SECTIONS } from '../../types/layout';
 import { TRADING_MILESTONES } from '../../types/milestones';
 
-interface HomePageProps { userProgress?: any; }
+interface TradingAccount { id: string; name: string; type: 'prop_firm' | 'tfsa' | 'rrsp' | 'personal' | string; currentBalance: number; status: 'active' | 'inactive' | string; }
+interface FinancialSnapshot { totalNetWorth: number; monthlyIncome: number; monthlyExpenses: number; expenseCoverage: number; taxOptimizationScore: number; canadianTaxSavings: number; }
+interface UserProgress {
+	totalXP: number;
+	currentTitle: string;
+	titleColor: string;
+	titleIcon: string;
+	completedMilestones: string[];
+	accounts: TradingAccount[];
+	financialSnapshot: FinancialSnapshot;
+}
+interface HomePageProps { userProgress?: UserProgress; }
 
 const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
 	const mockProgress = {
@@ -27,13 +41,14 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
 			canadianTaxSavings: 2400
 		}
 	};
-	const progress = userProgress || mockProgress;
+	const progress: UserProgress = userProgress || mockProgress;
+	const { density, toggleDensity } = useUISettings();
 	const nextMilestone = TRADING_MILESTONES.find(m => !progress.completedMilestones.includes(m.id) && m.priority === 'high');
 	const quickStats = [
 		{ title: 'Total XP', value: progress.totalXP.toLocaleString(), icon: TrendingUp },
 		{ title: 'Expense Coverage', value: `${progress.financialSnapshot.expenseCoverage}%`, icon: DollarSign },
 		{ title: 'Tax Savings', value: `$${progress.financialSnapshot.canadianTaxSavings.toLocaleString()}`, icon: Shield },
-		{ title: 'Active Accounts', value: progress.accounts.filter((a: any) => a.status === 'active').length, icon: BarChart }
+		{ title: 'Active Accounts', value: progress.accounts.filter((a) => a.status === 'active').length, icon: BarChart }
 	];
 	const activeTradingSections = APP_SECTIONS.filter(section => ['trading', 'strategy', 'accounts'].includes(section.id));
 	const longTermSections = [
@@ -42,12 +57,12 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
 		{ id: 'calendar', title: 'Dev Calendar', description: 'Schedule & track development work', icon: '📅' }
 	];
 	return (
-		<div className="min-h-screen p-6">
+		<div className="px-4 md:px-6 pb-10">
 			<div className="max-w-7xl mx-auto">
-				<div className="mb-8">
+				<div className="mb-6 md:mb-8">
 					<div className="flex items-center justify-between">
 						<div>
-							<h1 className="text-4xl font-bold text-white mb-2">Welcome to FKS Trading Platform</h1>
+							<h1 className="font-bold text-white mb-2 text-[clamp(1.9rem,3.5vw,2.5rem)] leading-tight">Welcome to FKS Trading Platform</h1>
 							<div className="flex items-center gap-3">
 								<span className="text-2xl">{progress.titleIcon}</span>
 								<span className="text-xl font-semibold text-blue-400">{progress.currentTitle}</span>
@@ -56,27 +71,22 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
 							</div>
 						</div>
 						<div className="flex items-center gap-4">
-							<div className="text-right text-white/70">
+							<div className="text-right text-white/70 hidden xs:block">
 								<p className="text-lg font-mono">{new Date().toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit',timeZone:'America/Toronto'})} EST</p>
 								<p className="text-sm">{new Date().toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})}</p>
 							</div>
-							<button className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors border border-white/20">
+							<button title="Preferences" className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors border border-white/20">
 								<Settings className="h-5 w-5 text-white/80" />
+							</button>
+							<button onClick={toggleDensity} aria-label="Toggle density" title="Toggle density (Shift+D)" className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs border border-white/20 font-medium tracking-wide">
+								{density === 'compact' ? 'Comfort' : 'Compact'}
 							</button>
 						</div>
 					</div>
 				</div>
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+				<div className="stats-grid mb-8">
 					{quickStats.map((stat, i) => (
-						<div key={i} className="glass-card p-6">
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="text-sm font-medium text-white/70">{stat.title}</p>
-									<p className="text-2xl font-bold text-white">{stat.value}</p>
-								</div>
-								<stat.icon className="h-8 w-8 text-blue-400" />
-							</div>
-						</div>
+						<StatTile key={i} label={stat.title} value={stat.value} icon={<stat.icon className="h-5 w-5 md:h-6 md:w-6" />} className="min-h-[110px]" />
 					))}
 				</div>
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -108,7 +118,7 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
 						</div>
 					</div>
 				</div>
-				<div className="glass-card p-6 mb-6">
+				<LazyReveal className="glass-card p-6 mb-6" placeholderHeight={220} skeleton={<div className="skeleton-pulse h-[220px]"></div>} performanceLabel="active-trading">
 					<h3 className="text-xl font-semibold text-white mb-2">Active Trading</h3>
 					<p className="text-white/60 text-sm mb-6">Real-time trading & money-making strategies</p>
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -120,24 +130,24 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
 							</Link>
 						))}
 					</div>
-				</div>
-				<div className="glass-card p-6 mb-8">
+				</LazyReveal>
+				<LazyReveal className="glass-card p-6 mb-8" placeholderHeight={240} skeleton={<div className="skeleton-pulse h-[240px]"></div>} performanceLabel="long-term">
 					<h3 className="text-xl font-semibold text-white mb-2">Long-term & Organization</h3>
 					<p className="text-white/60 text-sm mb-6">Tax optimization, long-term investments & development planning</p>
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 						{longTermSections.map(section => (
-							<Link key={section.id} to={section.id === 'taxes' ? '/taxes' : section.id === 'portfolio' ? '/portfolio' : '/calendar'} className="flex flex-col items-center p-4 rounded-lg border border-white/20 bg-white/10 hover:border-green-400/50 hover:bg-green-500/20 transition-all">
+							<Link key={section.id} to={section.id === 'taxes' ? '/tax' : section.id === 'portfolio' ? '/portfolio' : '/calendar/dev'} className="flex flex-col items-center p-4 rounded-lg border border-white/20 bg-white/10 hover:border-green-400/50 hover:bg-green-500/20 transition-all">
 								<span className="text-3xl mb-2">{section.icon}</span>
 								<span className="font-medium text-white text-center">{section.title}</span>
 								<span className="text-sm text-white/60 text-center mt-1">{section.description}</span>
 							</Link>
 						))}
 					</div>
-				</div>
-				<div className="glass-card p-6">
+				</LazyReveal>
+				<LazyReveal className="glass-card p-6" placeholderHeight={260} skeleton={<div className="skeleton-pulse h-[260px]"></div>} performanceLabel="active-accounts">
 					<div className="flex items-center gap-3 mb-6"><BarChart className="h-6 w-6 text-orange-400" /><h3 className="text-xl font-semibold text-white">Active Accounts</h3></div>
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{progress.accounts.filter((a: any)=>a.status==='active').map((account: any) => (
+						{progress.accounts.filter(a => a.status==='active').map((account) => (
 							<div key={account.id} className="p-4 border border-white/20 bg-white/10 rounded-lg">
 								<div className="flex items-center justify-between mb-2">
 									<h4 className="font-medium text-white">{account.name}</h4>
@@ -148,7 +158,7 @@ const HomePage: React.FC<HomePageProps> = ({ userProgress }) => {
 							</div>
 						))}
 					</div>
-				</div>
+				</LazyReveal>
 			</div>
 		</div>
 	);

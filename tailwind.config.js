@@ -18,6 +18,10 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        // Custom medium-wide breakpoint to improve dashboard density when DevTools reduce width
+        mdx: '880px'
+      },
       colors: {
         primary: {
           50: '#f0f9ff',

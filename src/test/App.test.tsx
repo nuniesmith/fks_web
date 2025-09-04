@@ -22,6 +22,9 @@ describe('App Component', () => {
   // Brand + some nav links (exact set may vary by env; assert subset)
   expect(screen.getByText('FKS')).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Home' })).toBeInTheDocument()
+  // Skip link present (hidden until focus)
+  const skip = screen.getByText('Skip to content')
+  expect(skip).toHaveAttribute('href', '#main')
   })
 
   it('starts with home page as the default route', async () => {

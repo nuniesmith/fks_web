@@ -1,4 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+// Hoist mock before importing module under test
+const mockAk = { refreshToken: vi.fn(async (r: string) => ({ access_token: 'newA', refresh_token: r })) }
+vi.mock('../security/AuthentikService', () => ({ default: { getInstance: () => mockAk } }))
 import { getCurrentAccessToken, buildAuthHeaders, authFetch, refreshAccessToken } from '../authToken'
 
 function setTokens(tokens: any) {
@@ -31,11 +34,6 @@ describe('authToken utilities', () => {
 
   it('authFetch retries once on 401 with refresh success', async () => {
     setTokens({ access_token: 'oldA', refresh_token: 'refreshA' })
-    const newTokens = { access_token: 'newA', refresh_token: 'refreshA' }
-    // mock refresh
-    const mockAk = { refreshToken: vi.fn().mockResolvedValue(newTokens) }
-    vi.mock('../security/AuthentikService', () => ({ default: { getInstance: () => mockAk } }))
-
     let calls: Array<{ url: string; auth?: string }> = []
     global.fetch = vi.fn(async (url: any, init: any) => {
       const auth = init?.headers?.Authorization || init?.headers?.authorization
@@ -45,7 +43,6 @@ describe('authToken utilities', () => {
       }
       return new Response(JSON.stringify({ ok: true }), { status: 200 }) as any
     }) as any
-
     const res = await authFetch<any>('https://example.com/secure')
     expect(res.ok).toBe(true)
     expect(calls.length).toBe(2)

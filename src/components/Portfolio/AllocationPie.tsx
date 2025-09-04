@@ -1,7 +1,7 @@
 import React from 'react';
 
-// Lazy load heavy recharts primitives via existing pie bundle
-const LazyPie = React.lazy(() => import('../../features/lazy/RechartsPie'));
+// Lazy load minimal pie chart (micro-chunk) instead of full recharts bundle
+const LazyPie = React.lazy(() => import('../../features/lazy/recharts-parts/Pie'));
 
 interface Props { data: Record<string, number>; }
 const palette = ['#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#f59e0b', '#f87171'];
