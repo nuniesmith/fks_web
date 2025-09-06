@@ -172,7 +172,45 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ sections, isDevelopment, 
               title="Toggle enhanced keyboard navigation (persists locally)"
             >KB</button>
           </div>
-          <div className="hidden md:flex items-center gap-3">{!isAuthenticated ? (<Link to="/login" className="px-3 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">Login</Link>) : (<div className="relative" ref={userMenuRef}><button onClick={()=>setUserMenuOpen(v=>!v)} className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 border border-white/10"><div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xs font-bold">{(user?.name || user?.email || '?').slice(0,1).toUpperCase()}</div><span className="text-sm text-white/90 hidden lg:inline">{user?.name || user?.email}</span></button>{userMenuOpen && (<div className="absolute right-0 mt-2 w-72 bg-gray-900/95 backdrop-blur border border-gray-700 rounded-md shadow-lg z-50 p-3"><div className="text-sm text-white mb-2">Signed in as <span className="font-medium">{user?.email}</span></div><div className="mb-3"><div className="flex items-center justify-between text-xs text-gray-300"><span>XP</span><span className="font-mono">{userProgress.totalXP.toLocaleString()}</span></div><div className="h-1.5 bg-white/10 rounded mt-1 overflow-hidden"><div className="h-1.5 bg-blue-500 rounded" style={{width: `${Math.min(100,(userProgress.totalXP % 1000)/10)}%`}}/></div></div><div className="space-y-1"><Link to="/accounts" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Accounts</Link><Link to="/ai/assistant" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">AI Assistant</Link><Link to="/chat/discord" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Chat</Link><Link to="/milestones" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Milestones</Link><Link to="/settings" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Settings</Link><Link to="/calendar/plan" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Calendar</Link>{isDevelopment && (<Link to="/architecture" className="block text-sm text-orange-300 hover:text-white hover:bg-orange-500/10 rounded px-2 py-1">Architecture (dev)</Link>)}</div><div className="border-t border-gray-700 mt-2 pt-2"><button onClick={async()=>{try{await security.logout();}catch{} userLogout(); navigate('/login');}} className="w-full text-left text-sm text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded px-2 py-1">Logout</button></div></div>)}</div>)}</div>
+          <div className="hidden md:flex items-center gap-3">
+            {!isAuthenticated ? (
+              <Link to="/login" className="px-3 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">Login</Link>
+            ) : (
+              <div className="relative" ref={userMenuRef}>
+                <button onClick={()=>setUserMenuOpen(v=>!v)} className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 border border-white/10">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center text-xs font-bold">
+                    {(user?.name || user?.email || '?').slice(0,1).toUpperCase()}
+                  </div>
+                  <span className="text-sm text-white/90 hidden lg:inline">{user?.name || user?.email}</span>
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-72 bg-gray-900/95 backdrop-blur border border-gray-700 rounded-md shadow-lg z-50 p-3">
+                    <div className="text-sm text-white mb-2">Signed in as <span className="font-medium">{user?.email}</span></div>
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between text-xs text-gray-300"><span>XP</span><span className="font-mono">{userProgress.totalXP.toLocaleString()}</span></div>
+                      <div className="h-1.5 bg-white/10 rounded mt-1 overflow-hidden">
+                        <div className="h-1.5 bg-blue-500 rounded" style={{width: `${Math.min(100,(userProgress.totalXP % 1000)/10)}%`}} />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Link to="/accounts" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Accounts</Link>
+                      <Link to="/assistant" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">AI Assistant</Link>
+                      <Link to="/discord" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Chat</Link>
+                      <Link to="/milestones" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Milestones</Link>
+                      <Link to="/settings" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Settings</Link>
+                      <Link to="/calendar/dev" className="block text-sm text-gray-200 hover:text-white hover:bg-white/5 rounded px-2 py-1">Calendar</Link>
+                      {isDevelopment && (
+                        <Link to="/architecture" className="block text-sm text-orange-300 hover:text-white hover:bg-orange-500/10 rounded px-2 py-1">Architecture (dev)</Link>
+                      )}
+                    </div>
+                    <div className="border-t border-gray-700 mt-2 pt-2">
+                      <button onClick={async()=>{try{await security.logout();}catch{} userLogout(); navigate('/login');}} className="w-full text-left text-sm text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded px-2 py-1">Logout</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <div className="md:hidden"><button aria-label={isMenuOpen ? 'Close menu' : 'Open menu'} onClick={()=>setIsMenuOpen(!isMenuOpen)} className="text-gray-200 hover:text-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 rounded">
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button></div>
