@@ -5,7 +5,6 @@
         "lib": ["ES2020", "DOM", "DOM.Iterable"],
         "module": "ESNext",
         "skipLibCheck": true,
-        "types": ["vitest/globals"],
         "allowJs": true,
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
@@ -45,7 +44,10 @@
         "shared/react/src"
     ],
     "exclude": [
-        "src/App-new.tsx"
+        "src/App-new.tsx",
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/*.test.tsx"
     ],
     "references": [{ "path": "./tsconfig.node.json" }]
 }
