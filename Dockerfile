@@ -26,10 +26,24 @@ ENV VITE_API_BASE_URL=${VITE_API_BASE_URL} \
 # Copy package files for dependency caching
 COPY package*.json ./
 
-# Install dependencies with updated npm
-RUN npm cache clean --force && \
-  npm install -g npm@latest && \
-  npm install --no-audit --no-fund --legacy-peer-deps
+# Install dependencies deterministically with lockfile (includes dev deps for build)
+ENV NODE_ENV=development npm_config_production=false
+COPY package-lock.json ./
+RUN set -eux; \
+  npm install -g npm@latest; \
+  success=0; \
+  for i in 1 2 3; do \
+    if npm ci --include=dev --no-audit --no-fund; then success=1; break; fi; \
+    echo "npm ci attempt $i failed, retrying..." >&2; \
+    rm -rf node_modules; \
+    sleep 2; \
+  done; \
+  if [ "$success" -ne 1 ]; then echo 'npm ci failed after 3 attempts' >&2; exit 1; fi; \
+  # Sanity check: ensure core deps present (react is a good proxy)
+  [ -d node_modules/react ] || { echo 'react dependency missing after install' >&2; ls -al node_modules | head || true; exit 2; }; \
+  # Fallback sanity: ensure build tools exist (prefer local but keep global for PATH)
+  npm install -g typescript@5.9.2 vite@7.1.3; \
+  npm cache clean --force >/dev/null 2>&1 || true
 
 # Copy source and build
 COPY . .
