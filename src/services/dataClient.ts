@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { config } from './config';
+import { buildAuthHeaders, refreshAccessToken, getCurrentAccessToken } from './authToken';
 
 import type { AxiosError } from 'axios';
 
@@ -21,17 +22,23 @@ export const dataClient = axios.create({
 });
 
 dataClient.interceptors.request.use(req => {
+  req.headers = buildAuthHeaders(req.headers as any) as any;
+  return req;
+});
+
+dataClient.interceptors.response.use(r => r, async (error) => {
   try {
-    const lsToken = typeof window !== 'undefined' ? localStorage.getItem('fks_api_token') : null;
-    const envToken = (import.meta as any).env?.VITE_API_TOKEN as string | undefined;
-    const authTokensRaw = typeof window !== 'undefined' ? localStorage.getItem('auth_tokens') : null;
-    const authAccess = authTokensRaw ? (JSON.parse(authTokensRaw)?.access_token as string | undefined) : undefined;
-    const token = authAccess || lsToken || envToken;
-    if (token) {
-      (req.headers as any) = { ...(req.headers||{}), Authorization: `Bearer ${token}`, 'X-API-Key': token };
+    const status = error?.response?.status;
+    if (status === 401 && !error.config?._retry) {
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
+        error.config._retry = true;
+        error.config.headers = buildAuthHeaders(error.config.headers || {});
+        return dataClient.request(error.config);
+      }
     }
   } catch {}
-  return req;
+  return Promise.reject(error);
 });
 
 export interface DataSuccess<T=any> { ok: true; data?: T; [k: string]: any }

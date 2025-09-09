@@ -183,6 +183,9 @@ export class PerformanceMonitor {
   private startNetworkMonitoring(): void {
     // Intercept fetch requests
     const originalFetch = window.fetch;
+  // Prevent double-wrapping if already instrumented
+  if ((window as any)._fksFetchWrapped) return;
+  (window as any)._fksFetchWrapped = true;
     
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input.toString();
@@ -190,7 +193,42 @@ export class PerformanceMonitor {
       const startTime = performance.now();
       
       try {
-        const response = await originalFetch(input, init);
+        let response = await originalFetch(input, init);
+        // On 401 with a refresh token available, attempt a single silent refresh then retry
+        if (response.status === 401) {
+          try {
+            const raw = localStorage.getItem('auth_tokens');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed.refresh_token) {
+                // Avoid recursive loops by tagging retry
+                const alreadyRetried = (init as any)?.__retried401;
+                if (!alreadyRetried) {
+                  const authBase = (import.meta as any).env?.VITE_RUST_AUTH_URL || 'http://localhost:4100';
+                  const refreshResp = await originalFetch(`${authBase.replace(/\/$/, '')}/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: parsed.refresh_token })
+                  }).catch(() => null);
+                  if (refreshResp && refreshResp.ok) {
+                    const data = await refreshResp.json().catch(() => ({}));
+                    if (data.access_token) {
+                      const merged = { ...parsed, ...data, obtained_at: Date.now() };
+                      localStorage.setItem('auth_tokens', JSON.stringify(merged));
+                      // Re-issue original request with new Authorization header if it had one
+                      const headers = new Headers(init?.headers || (typeof input !== 'string' && (input as Request).headers));
+                      if (headers.has('Authorization')) {
+                        headers.set('Authorization', `Bearer ${data.access_token}`);
+                        headers.set('X-API-Key', data.access_token);
+                      }
+                      response = await originalFetch(input, { ...(init || {}), headers, __retried401: true } as any);
+                    }
+                  }
+                }
+              }
+            }
+          } catch { /* swallow refresh errors */ }
+        }
         const duration = performance.now() - startTime;
         
         // Check if request went through Tailscale
@@ -231,7 +269,7 @@ export class PerformanceMonitor {
             }
           } catch {}
         }
-        return response;
+  return response;
       } catch (error) {
         const duration = performance.now() - startTime;
         

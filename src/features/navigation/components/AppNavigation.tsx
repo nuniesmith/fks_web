@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect, useLayoutEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useMilestones } from '../../../context/MilestoneContext';
+import useAuthSession from '../../../hooks/useAuthSession';
 import { useSecurityContext } from '../../../context/SecurityContext';
 import { useTradingEnv } from '../../../context/TradingEnvContext';
 import { useUser } from '../../../context/UserContext';
@@ -39,6 +40,15 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ sections, isDevelopment, 
   const { userProgress } = useMilestones();
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const { focus, setFocus, readiness } = useTradingEnv();
+  const sessionInfo = useAuthSession(1000);
+  // Auto-logout if token expired
+  useEffect(() => {
+    if (isAuthenticated && sessionInfo.valid === false && sessionInfo.accessToken) {
+      // Grace period of 2s to allow silent refresh if in flight
+      const t = setTimeout(async () => { try { await security.logout(); } catch {} userLogout(); navigate('/login'); }, 2000);
+      return () => clearTimeout(t);
+    }
+  }, [isAuthenticated, sessionInfo.valid, sessionInfo.accessToken, security, userLogout, navigate]);
   useEffect(() => { const handler = (e: MouseEvent) => { if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false); }; document.addEventListener('click', handler); return () => document.removeEventListener('click', handler); }, []);
   function CalendarIcon(props: any) { return (<svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`h-4 w-4 ${props.className || ''}`}><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>); }
   const getIcon = (id: string) => (id === 'calendar' ? CalendarIcon : getNavIcon(id));
@@ -182,6 +192,9 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ sections, isDevelopment, 
                     {(user?.name || user?.email || '?').slice(0,1).toUpperCase()}
                   </div>
                   <span className="text-sm text-white/90 hidden lg:inline">{user?.name || user?.email}</span>
+                  {sessionInfo.expiresAt && (
+                    <span className={`ml-1 text-[10px] font-mono px-1.5 py-0.5 rounded ${sessionInfo.remainingSec < 60 ? 'bg-red-600/40 text-red-200' : 'bg-white/10 text-white/70'}`} title="Access token remaining (seconds)">{sessionInfo.remainingSec}s</span>
+                  )}
                 </button>
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-72 bg-gray-900/95 backdrop-blur border border-gray-700 rounded-md shadow-lg z-50 p-3">
@@ -202,6 +215,10 @@ const AppNavigation: React.FC<AppNavigationProps> = ({ sections, isDevelopment, 
                       {isDevelopment && (
                         <Link to="/architecture" className="block text-sm text-orange-300 hover:text-white hover:bg-orange-500/10 rounded px-2 py-1">Architecture (dev)</Link>
                       )}
+                    </div>
+                    <div className="mt-2 text-[10px] text-gray-400 flex items-center justify-between">
+                      {sessionInfo.expiresAt && <span>Expires {new Date(sessionInfo.expiresAt).toLocaleTimeString()}</span>}
+                      {sessionInfo.refreshing && <span className="text-blue-300">refreshing…</span>}
                     </div>
                     <div className="border-t border-gray-700 mt-2 pt-2">
                       <button onClick={async()=>{try{await security.logout();}catch{} userLogout(); navigate('/login');}} className="w-full text-left text-sm text-red-300 hover:text-red-200 hover:bg-red-500/10 rounded px-2 py-1">Logout</button>

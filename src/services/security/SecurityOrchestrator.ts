@@ -52,6 +52,8 @@ export class SecurityOrchestrator {
   private googleOAuthService?: GoogleOAuthService;
   private config: SecurityConfig;
   private initialized = false;
+  // Guard concurrent initialize() calls so we don't log twice / double-init
+  private initializingPromise: Promise<void> | null = null;
   private securityEvents: SecurityEvent[] = [];
   private eventListeners: ((event: SecurityEvent) => void)[] = [];
 
@@ -79,6 +81,11 @@ export class SecurityOrchestrator {
     };
   }
 
+  private getAuthBase(): string {
+  // Default fallback updated to 4100 (matches auth/docker-compose AUTH_PORT)
+  return (import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:4100').replace(/\/$/, '');
+  }
+
   static getInstance(): SecurityOrchestrator {
     if (!SecurityOrchestrator.instance) {
       SecurityOrchestrator.instance = new SecurityOrchestrator();
@@ -91,10 +98,12 @@ export class SecurityOrchestrator {
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
+    if (this.initializingPromise) { return this.initializingPromise; }
 
-    console.log('Initializing Security Orchestrator...');
-
-    try {
+    // Start a single shared initialization promise to collapse races
+    this.initializingPromise = (async () => {
+      console.log('Initializing Security Orchestrator...');
+      try {
       // If Google OAuth is disabled, sanitize any stale client-side Google auth state
       if (!this.config.googleOAuth) {
         const prev = localStorage.getItem('auth_provider');
@@ -174,20 +183,30 @@ export class SecurityOrchestrator {
       // 4. Setup security validation middleware
       await this.setupSecurityMiddleware();
 
-      this.initialized = true;
-      console.log('Security Orchestrator initialized successfully');
+        this.initialized = true;
+        console.log('Security Orchestrator initialized successfully');
+      } catch (error: any) {
+        this.logSecurityEvent({
+          type: 'audit',
+          severity: 'critical',
+          message: `Security initialization failed: ${error.message}`,
+          timestamp: Date.now(),
+          resolved: false,
+          details: { error: error.message }
+        });
+        throw error;
+      } finally {
+        // Allow future re-attempts only if not initialized (i.e. failed init)
+        if (this.initialized) {
+          this.initializingPromise = null;
+        } else {
+          // keep promise null so a new attempt can start
+          this.initializingPromise = null;
+        }
+      }
+    })();
 
-  } catch (error: any) {
-      this.logSecurityEvent({
-        type: 'audit',
-        severity: 'critical',
-        message: `Security initialization failed: ${error.message}`,
-        timestamp: Date.now(),
-        resolved: false,
-        details: { error: error.message }
-      });
-      throw error;
-    }
+    return this.initializingPromise;
   }
 
   /**
@@ -231,13 +250,26 @@ export class SecurityOrchestrator {
         try {
             const parsed = JSON.parse(raw);
             const token = parsed.access_token || parsed.token || parsed;
-            // Validate with Rust auth service; fallback accept in dev if unreachable
-            const authUrl = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:8001';
-            const resp = await fetch(`${authUrl}/health`);
-            if (resp.ok) {
-              status.authentication = { method: 'oauth', authenticated: true, user: { id: 'user', tokenPreview: String(token).slice(0,8) } };
-            } else {
+            if (!token || typeof token !== 'string') {
               status.authentication = { method: 'none', authenticated: false };
+            } else {
+              const resp = await fetch(`${this.getAuthBase()}/me`, { headers: { Authorization: `Bearer ${token}` } });
+              if (resp.ok) {
+                const profile = await resp.json().catch(()=>({}));
+                const user = (profile && (profile.user || profile)) || { id: 'user' };
+                try { localStorage.setItem('auth_user', JSON.stringify(user)); } catch {}
+                status.authentication = { method: 'oauth', authenticated: true, user };
+              } else {
+                let reason = 'unknown';
+                try { reason = await resp.text(); } catch {}
+                console.warn('[Security] /me 401', {
+                  status: resp.status,
+                  reason,
+                  token_preview: token.slice(0, 16) + '...'
+                });
+                try { localStorage.setItem('auth_last_error', reason); } catch {}
+                status.authentication = { method: 'none', authenticated: false };
+              }
             }
         } catch {
           status.authentication = { method: 'none', authenticated: false };
@@ -314,7 +346,7 @@ export class SecurityOrchestrator {
 
       // Authentik OAuth flow
       if (provider === 'rust') {
-        const authBase = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:8001';
+  const authBase = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:4100';
         return `${authBase}/login?redirect_uri=${encodeURIComponent(window.location.href)}`;
       }
 
@@ -356,10 +388,22 @@ export class SecurityOrchestrator {
           throw new Error(`Google OAuth not available in browser: ${err?.message || err}`);
         }
       } else if (provider === 'rust') {
-        const fakeTokens = { access_token: code, refresh_token: state, token_type: 'bearer', expires_in: 3600 };
-        localStorage.setItem('auth_tokens', JSON.stringify(fakeTokens));
-        user = { id: 'user', username: 'user', email: 'user@example.com' };
+        // In real flow we would exchange code/state. Here keep backward compatibility but attempt /me fetch.
+        const tokens = { access_token: code, refresh_token: state, token_type: 'bearer', obtained_at: Date.now() };
+        localStorage.setItem('auth_tokens', JSON.stringify(tokens));
         localStorage.setItem('auth_provider', 'rust');
+        try {
+          const resp = await fetch(`${this.getAuthBase()}/me`, { headers: { Authorization: `Bearer ${tokens.access_token}` } });
+          if (resp.ok) {
+            const profile = await resp.json().catch(()=>({}));
+            user = (profile && (profile.user || profile)) || { id: 'user' };
+            try { localStorage.setItem('auth_user', JSON.stringify(user)); } catch {}
+          } else {
+            user = { id: 'user', username: 'user', email: 'user@example.com' };
+          }
+        } catch {
+          user = { id: 'user', username: 'user', email: 'user@example.com' };
+        }
       } else {
         throw new Error('Invalid authentication provider');
       }
@@ -442,13 +486,23 @@ export class SecurityOrchestrator {
           await this.googleOAuthService!.signOut(userId);
         }
       } else if (authProvider === 'rust') {
-        // Optional: call rust auth logout endpoint
+        // Call rust auth logout endpoint (best-effort)
+        try {
+          const raw = localStorage.getItem('auth_tokens');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            const access = parsed.access_token || parsed.token || parsed;
+            const base = this.getAuthBase();
+            await fetch(`${base}/logout`, { method: 'POST', headers: { Authorization: `Bearer ${access}` } }).catch(()=>{});
+          }
+        } catch {/* ignore */}
       }
 
       // Clear all stored tokens and session data
       localStorage.removeItem('auth_tokens');
       localStorage.removeItem('current_user_id');
       localStorage.removeItem('auth_provider');
+  localStorage.removeItem('auth_user');
       sessionStorage.clear();
 
       this.logSecurityEvent({
@@ -532,7 +586,7 @@ export class SecurityOrchestrator {
         if (!tokens.access_token) return false;
         // Ping rust auth health endpoint
         try {
-          const base = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:8001';
+          const base = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:4100';
           const r = await fetch(`${base}/health`);
           return r.ok;
         } catch { return false; }
@@ -626,7 +680,7 @@ export class SecurityOrchestrator {
   }> {
     const services = {
       tailscale: await this.tailscaleService.healthCheck(),
-  rust_auth: await (async () => { try { const u = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:8001'; const r = await fetch(`${u}/health`); return { ok: r.ok }; } catch { return { ok: false }; } })(),
+  rust_auth: await (async () => { try { const u = import.meta.env.VITE_RUST_AUTH_URL || 'http://localhost:4100'; const r = await fetch(`${u}/health`); return { ok: r.ok }; } catch { return { ok: false }; } })(),
       performance: this.performanceMonitor.healthCheck()
     };
 

@@ -2,6 +2,8 @@
 // NOTE: Legacy path re-export remains at original location during migration.
 import { createChart } from 'lightweight-charts';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import useSecurity from '@/hooks/useSecurity';
+import { buildAuthHeaders } from '@/services/authToken';
 
 import { config } from '@/services/config';
 import { useNotifications } from '@/components/Notifications';
@@ -105,8 +107,13 @@ const TradingChart: React.FC<TradingChartProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [height]);
 
+  const [security] = useSecurity();
+  // Helper to build auth headers (only when we have tokens and security is ready)
+  const localAuthHeaders = () => security?.ready ? (buildAuthHeaders() as Record<string,string>) : undefined;
+
   // Fetch chart data
   const fetchChartData = useCallback(async () => {
+    if (dataSource === 'internal' && !security.ready) return; // wait for auth posture
     try {
       setLoading(true);
       setError(null);
@@ -139,8 +146,9 @@ const TradingChart: React.FC<TradingChartProps> = ({
       } else {
         // Internal API
         const API_BASE = (config.apiBaseUrl || '/api').replace(/\/$/, '');
+  const headers = localAuthHeaders();
         const response = await fetch(
-          `${API_BASE}/chart-data/${symbol}?timeframe=${timeframe}&limit=500`
+          `${API_BASE}/chart-data/${symbol}?timeframe=${timeframe}&limit=500`, { headers }
         );
         if (!response.ok) throw new Error(`Failed to fetch data: ${response.statusText}`);
         const result = await response.json();
@@ -166,17 +174,19 @@ const TradingChart: React.FC<TradingChartProps> = ({
       setError(err instanceof Error ? err.message : 'Failed to fetch chart data');
       setLoading(false);
     }
-  }, [symbol, timeframe, dataSource]);
+  }, [symbol, timeframe, dataSource, security.ready]);
 
   // Fetch indicators
   const fetchIndicators = useCallback(async () => {
     if (indicators.length === 0) return;
+    if (dataSource === 'internal' && !security.ready) return;
 
     try {
       const API_BASE = (config.apiBaseUrl || '/api').replace(/\/$/, '');
       const indicatorsParam = indicators.join(',');
+  const headers = localAuthHeaders();
       const response = await fetch(
-        `${API_BASE}/chart-indicators/${symbol}?indicators=${indicatorsParam}&timeframe=${timeframe}&limit=500`
+        `${API_BASE}/chart-indicators/${symbol}?indicators=${indicatorsParam}&timeframe=${timeframe}&limit=500`, { headers }
       );
 
       if (!response.ok) return;
@@ -207,7 +217,7 @@ const TradingChart: React.FC<TradingChartProps> = ({
     } catch (err) {
       console.warn('Failed to fetch indicators:', err);
     }
-  }, [symbol, timeframe, indicators]);
+  }, [symbol, timeframe, indicators, dataSource, security.ready]);
 
   // Update real-time data
   const updateRealTimeData = useCallback((newData: ChartDataPoint) => {
@@ -220,6 +230,7 @@ const TradingChart: React.FC<TradingChartProps> = ({
   // Setup WebSocket for real-time updates
   useEffect(() => {
     if (!realTimeEnabled) return;
+    if (dataSource === 'internal' && !security.ready) return; // delay connecting until auth ready
 
     // Choose WebSocket based on data source
     let wsUrl: string;
@@ -255,7 +266,15 @@ const TradingChart: React.FC<TradingChartProps> = ({
     const connect = () => {
       cleanupPrev();
       try {
-        const ws = new WebSocket(wsUrl);
+        let authQuery = '';
+        try {
+          if (security.ready) {
+            const hdrs = buildAuthHeaders();
+            const token = (hdrs as any)?.Authorization?.toString().replace(/^Bearer\s+/,'');
+            if (token) authQuery = wsUrl.includes('?') ? `&token=${encodeURIComponent(token)}` : `?token=${encodeURIComponent(token)}`;
+          }
+        } catch {}
+        const ws = new WebSocket(wsUrl + authQuery);
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -326,7 +345,7 @@ const TradingChart: React.FC<TradingChartProps> = ({
       cleanupPrev();
       reconnectAttemptsRef.current = 0;
     };
-  }, [realTimeEnabled, symbol, timeframe, dataSource, updateRealTimeData]);
+  }, [realTimeEnabled, symbol, timeframe, dataSource, updateRealTimeData, security.ready]);
 
   // Initialize chart on mount
   useEffect(() => {

@@ -1,5 +1,8 @@
 import { Activity, BarChart3, Settings, TrendingUp } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import useSecurity from '../hooks/useSecurity';
+import { config } from '../services/config';
+import { buildAuthHeaders } from '../services/authToken';
 
 import TradingChart from '@/features/lazy/TradingChartLazy';
 
@@ -49,47 +52,40 @@ const TradingDashboard: React.FC<TradingDashboardProps> = ({ className = '' }) =
     { value: 'rsi', label: 'RSI' }
   ];
 
-  // Fetch market overview data
+  const [security] = useSecurity();
+  // Fetch market overview data (after security ready to avoid 401 + ensure auth headers)
   useEffect(() => {
+    if (!security.ready) return; // wait until auth posture known
+    let cancelled = false;
     const fetchMarketData = async () => {
       try {
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8002';
+        const API_BASE = (config.apiBaseUrl || '/api').replace(/\/$/, '');
+  const headers = buildAuthHeaders();
         const promises = symbols.slice(0, 5).map(async (symbol) => {
           try {
-            const response = await fetch(`${API_BASE}/api/chart-data/${symbol}?timeframe=1d&limit=2`);
+            const response = await fetch(`${API_BASE}/chart-data/${symbol}?timeframe=1d&limit=2`, { headers });
+            if (!response.ok) return null;
             const result = await response.json();
-            
             if (result.data && result.data.length >= 2) {
               const current = result.data[result.data.length - 1];
               const previous = result.data[result.data.length - 2];
               const change = current.close - previous.close;
               const changePercent = (change / previous.close) * 100;
-              
-              return {
-                symbol,
-                price: current.close,
-                change,
-                changePercent,
-                volume: current.volume
-              };
+              return { symbol, price: current.close, change, changePercent, volume: current.volume };
             }
             return null;
-          } catch {
-            return null;
-          }
+          } catch { return null; }
         });
-
-        const results = await Promise.all(promises);
-        setMarketData(results.filter(Boolean));
+        const results = (await Promise.all(promises)).filter(Boolean) as any[];
+        if (!cancelled) setMarketData(results);
       } catch (error) {
-        console.warn('Failed to fetch market data:', error);
+        if (!cancelled) console.warn('Failed to fetch market data:', error);
       }
     };
-
     fetchMarketData();
-    const interval = setInterval(fetchMarketData, 60000); // Update every minute
-    return () => clearInterval(interval);
-  }, [symbols]);
+    const interval = setInterval(fetchMarketData, 60000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [symbols, security.ready]);
 
   const handleIndicatorToggle = (indicator: string) => {
     setSelectedIndicators(prev => 

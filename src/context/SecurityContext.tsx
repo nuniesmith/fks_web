@@ -56,9 +56,17 @@ export function SecurityProvider({
       // Don't redirect if already on auth pages
       if (!currentPath.includes('/auth') && !currentPath.includes('/login')) {
         console.log('User not authenticated, security enforcement required');
-        
-        // You could implement automatic redirect here
-        // window.location.href = '/login';
+        try {
+          const disableAuto = localStorage.getItem('fks.disable.auto_login_redirect') === 'true' || (import.meta as any).env?.VITE_DISABLE_AUTO_LOGIN_REDIRECT === 'true';
+          if (!disableAuto) {
+            const ret = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+            window.location.replace(`/login?returnTo=${ret}`);
+          }
+        } catch {
+          // fallback
+          const ret = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+          window.location.replace(`/login?returnTo=${ret}`);
+        }
       }
     }
   }, [securityState.initialized, securityState.authenticated, securityState.loading]);

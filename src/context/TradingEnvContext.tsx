@@ -1,4 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+// Light import of security hook to coordinate readiness (lazy import would complicate types; hook already guarded)
+import useSecurity from '../hooks/useSecurity'
 
 import { config } from '../services/config'
 
@@ -98,11 +100,34 @@ export interface TradingEnvContextValue {
 
 const TradingEnvContext = createContext<TradingEnvContextValue | undefined>(undefined)
 
+function buildAuthHeaders(): HeadersInit | undefined {
+  try {
+    const authRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_tokens') : null
+    if (!authRaw) return undefined
+    const token = JSON.parse(authRaw)?.access_token
+    if (!token) return undefined
+    return { Authorization: `Bearer ${token}`, 'X-API-Key': token }
+  } catch { return undefined }
+}
+
+// Lightweight check used to gate API calls that we know will 401 loudly if unauthenticated.
+function hasAuthToken(): boolean {
+  try {
+    const authRaw = typeof localStorage !== 'undefined' ? localStorage.getItem('auth_tokens') : null
+    if (!authRaw) return false
+    const token = JSON.parse(authRaw)?.access_token
+    return !!token
+  } catch { return false }
+}
+
 async function verifyDatasetSplit(): Promise<boolean> {
   try {
     // Endpoint is defined as POST /api/data/dataset/verify
   const base = buildApiBase()
-  const res = await fetch(`${base}/data/dataset/verify`, { method: 'POST' })
+  // Avoid spamming unauthenticated 401s – defer until a token exists
+  if (!hasAuthToken()) return false
+  const headers = buildAuthHeaders()
+  const res = await fetch(`${base}/data/dataset/verify`, { method: 'POST', headers })
     if (!res.ok) {
       if (res.status === 404) {
         console.warn('[verifyDatasetSplit] 404: dataset verify endpoint not found')
@@ -121,15 +146,28 @@ async function verifyDatasetSplit(): Promise<boolean> {
 
 async function countAssigned(): Promise<{ strategiesAssigned: number; activeAssets: number; meta?: { source: string; warning?: string } }> {
   const base = buildApiBase()
+  // If not authenticated yet, skip remote lookups (prevents 401 storm) and fall back immediately
+  if (!hasAuthToken()) {
+    try {
+      const ls = typeof localStorage !== 'undefined' ? localStorage.getItem('fks.asset.strategy.assignments') : null
+      const map: Record<string, string[]> = ls ? JSON.parse(ls) : {}
+      const ids = Object.keys(map)
+      const strategiesAssigned = ids.reduce((a, k) => a + (map[k]?.length || 0), 0)
+      return { strategiesAssigned, activeAssets: ids.length, meta: { source: 'local', warning: 'auth-pending' } }
+    } catch {
+      return { strategiesAssigned: 0, activeAssets: 0, meta: { source: 'none', warning: 'auth-pending' } }
+    }
+  }
   // Allow disabling active-assets call (dev) via env/localStorage
   try {
     const disable = (import.meta as any).env?.VITE_DISABLE_ACTIVE_ASSETS === 'true' || (typeof localStorage !== 'undefined' && localStorage.getItem('fks.disable.active_assets') === 'true')
     if (disable) throw new Error('disabled-by-config')
     const assetsUrl = `${base}/active-assets`
     const assignsUrl = `${base}/strategy/assignments`
+    const headers = buildAuthHeaders()
     const [assetsRes, assignsRes] = await Promise.all([
-      fetch(assetsUrl).catch(e => { console.warn('[countAssigned] active-assets fetch failed', e); return undefined as any }),
-      fetch(assignsUrl).catch(() => undefined as any)
+      fetch(assetsUrl, { headers }).catch(e => { console.warn('[countAssigned] active-assets fetch failed', e); return undefined as any }),
+      fetch(assignsUrl, { headers }).catch(() => undefined as any)
     ])
     if (assetsRes && assetsRes.ok) {
       const j = await assetsRes.json().catch(() => ({}))
@@ -177,6 +215,8 @@ async function countAssigned(): Promise<{ strategiesAssigned: number; activeAsse
 }
 
 export const TradingEnvProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Security coordination
+  const [securityState] = useSecurity();
   // Lowercase focus used by new components
   const [focus, setFocus] = useState<TradingMode>('simulation')
   // Session state
@@ -225,6 +265,8 @@ export const TradingEnvProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [hasActiveAssetsRoute, setHasActiveAssetsRoute] = useState<boolean | null>(null)
   const OPENAPI_CACHE_KEY = 'fks.openapi.capabilities'
   const OPENAPI_TTL_MS = 5 * 60 * 1000 // 5 minutes
+  const OPENAPI_THROTTLE_MS = 30 * 1000 // throttle unauthenticated attempts
+  const OPENAPI_LAST_ATTEMPT_KEY = 'fks.openapi.lastAttemptTs'
 
   const loadCachedCapabilities = useCallback(() => {
     try {
@@ -244,13 +286,38 @@ export const TradingEnvProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const refreshCapabilities = useCallback(async () => {
     try {
       const base = buildApiBase()
-      let res = await fetch(`${base}/openapi.json`, { method: 'GET' }).catch(() => undefined as any)
-      if (!res || (res.status === 404 && /\/api$/.test(base))) {
-        // Fallback to root (handles backend exposing OpenAPI at root while APIs live under /api)
-        const rootBase = base.replace(/\/api$/, '')
-        res = await fetch(`${rootBase}/openapi.json`, { method: 'GET' }).catch(() => undefined as any)
+      const authed = hasAuthToken()
+      // Allow disabling probe entirely (useful for backends without OpenAPI or to suppress 401 noise)
+      const probeDisabled = (import.meta as any).env?.VITE_DISABLE_OPENAPI_PROBE === 'true' || (typeof localStorage !== 'undefined' && localStorage.getItem('fks.disable.openapi_probe') === 'true')
+      if (probeDisabled) return
+      // Throttle unauthenticated probing to avoid 401 spam
+      if (!authed) {
+        try {
+          const last = parseInt(localStorage.getItem(OPENAPI_LAST_ATTEMPT_KEY) || '0')
+          if (Date.now() - last < OPENAPI_THROTTLE_MS) return
+          // If we still don't have auth, skip the probe entirely and rely on later refresh()
+          // This prevents an initial guaranteed 401 during cold start.
+          if (!authed) {
+            localStorage.setItem(OPENAPI_LAST_ATTEMPT_KEY, String(Date.now()))
+            return
+          }
+          localStorage.setItem(OPENAPI_LAST_ATTEMPT_KEY, String(Date.now()))
+        } catch {}
       }
-      if (!res || !res.ok) { setHasActiveAssetsRoute(null); return }
+      const headers = buildAuthHeaders()
+      let res = await fetch(`${base}/openapi.json`, { method: 'GET', headers }).catch(() => undefined as any)
+      // Treat 401 like 404 for fallback purposes (common when OpenAPI served unauthenticated at root)
+      if (!res || ((res.status === 404 || res.status === 401) && /\/api$/.test(base))) {
+        const rootBase = base.replace(/\/api$/, '')
+        const rootRes = await fetch(`${rootBase}/openapi.json`, { method: 'GET', headers }).catch(() => undefined as any)
+        // Prefer successful root response
+        if (rootRes && rootRes.ok) res = rootRes
+      }
+      if (!res || !res.ok) {
+        // Only mutate state if we previously thought the route existed to avoid useless re-renders
+        setHasActiveAssetsRoute(prev => prev === null ? prev : null)
+        return
+      }
       const j = await res.json().catch(() => ({}))
       const paths = j?.paths || {}
       const has = Boolean(paths['/active-assets'] || paths['/active-assets/'])
@@ -265,8 +332,10 @@ export const TradingEnvProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     let cancelled = false
     const run = async () => {
-      const hit = loadCachedCapabilities()
-      if (!hit && !cancelled) await refreshCapabilities()
+  const hit = loadCachedCapabilities()
+  // Skip live probing until we have an auth token (prevents initial 401 spam). Cached value still used if valid.
+  if (!hasAuthToken()) return
+  if (!hit && !cancelled) await refreshCapabilities()
     }
     run()
     return () => { cancelled = true }
@@ -295,7 +364,28 @@ export const TradingEnvProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   setAssetsMeta({ source: assigned.meta?.source || 'unknown', warning: assigned.meta?.warning })
   }, [computeReadiness])
 
-  useEffect(() => { refresh() }, [refresh])
+  // Defer first refresh until security layer finished first init attempt to avoid 401 noise
+  useEffect(() => {
+    if (securityState.ready) {
+      refresh();
+    }
+  // only fire when transitioning to ready true
+  }, [securityState.ready, refresh])
+
+  // After authentication transitions to true (might already have been "ready" unauthenticated)
+  // perform a capability probe + full refresh (once per auth session).
+  const authRef = useRef<boolean>(securityState.authenticated)
+  useEffect(() => {
+    if (securityState.authenticated && !authRef.current) {
+      authRef.current = true
+      // Refresh capabilities and environment data now that we can hit protected endpoints
+      refreshCapabilities().catch(() => {})
+      refresh().catch(() => {})
+    } else if (!securityState.authenticated && authRef.current) {
+      // Reset so next login triggers again
+      authRef.current = false
+    }
+  }, [securityState.authenticated, refreshCapabilities, refresh])
 
   const start = useCallback(async (mode: TradingMode) => {
     const setter = mode === 'simulation' ? setSim : setLive

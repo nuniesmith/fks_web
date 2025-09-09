@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { SecurityOrchestrator } from '../services/security';
+import AuthTokenManager from '../services/security/AuthTokenManager';
 
 interface SecurityState {
-  initialized: boolean;
+  initialized: boolean; // true once orchestrator.initialize() succeeded
   vpnConnected: boolean;
   authenticated: boolean;
   user: any | null;
   loading: boolean;
   error: string | null;
   securityLevel: 'secure' | 'warning' | 'critical';
+  ready: boolean; // convenience flag: initialized && !loading
 }
 
 interface SecurityActions {
@@ -30,43 +32,45 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
     user: null,
     loading: false,
     error: null,
-    securityLevel: 'critical'
+    securityLevel: 'critical',
+    ready: false
   });
 
   const securityOrchestrator = SecurityOrchestrator.getInstance();
+  const tokenManager = AuthTokenManager.getInstance();
 
-  // Initialize security services on mount
-  useEffect(() => {
-    const initSecurity = async () => {
-      try {
-        setState(prev => ({ ...prev, loading: true, error: null }));
-        
-        await securityOrchestrator.initialize();
-        const status = await securityOrchestrator.validateSecurityPosture();
-        
-        const auth = status?.authentication || { authenticated: false, user: null } as any;
-        setState(prev => ({
-          ...prev,
-          initialized: true,
-          vpnConnected: status.vpn?.connected ?? true,
-          authenticated: !!auth.authenticated,
-          user: auth.user || null,
-          securityLevel: status.overall || 'critical',
-          loading: false
-        }));
+  // Shared init function (idempotent due to orchestrator guard)
+  const runInitialization = useCallback(async () => {
+    setState(prev => ({ ...prev, loading: true, error: null }));
+    try {
+      await securityOrchestrator.initialize();
+      const status = await securityOrchestrator.validateSecurityPosture();
+      const auth = status?.authentication || { authenticated: false, user: null } as any;
+      setState(prev => ({
+        ...prev,
+        initialized: true,
+        vpnConnected: status.vpn?.connected ?? true,
+        authenticated: !!auth.authenticated,
+        user: auth.user || null,
+        securityLevel: status.overall || 'critical',
+        loading: false,
+        ready: true
+      }));
+  if (auth.authenticated) tokenManager.ensureSchedule();
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Security initialization failed',
+        securityLevel: 'critical',
+        ready: false
+      }));
+      throw error;
+    }
+  }, [securityOrchestrator]);
 
-      } catch (error) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: error instanceof Error ? error.message : 'Security initialization failed',
-          securityLevel: 'critical'
-        }));
-      }
-    };
-
-    initSecurity();
-  }, []);
+  // Initialize on mount
+  useEffect(() => { runInitialization(); }, [runInitialization]);
 
   // Listen for security events
   useEffect(() => {
@@ -83,32 +87,13 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
 
   const actions: SecurityActions = {
     initializeSecurity: useCallback(async () => {
-      try {
-        setState(prev => ({ ...prev, loading: true, error: null }));
-        
-        await securityOrchestrator.initialize();
-        const status = await securityOrchestrator.validateSecurityPosture();
-        
-        const auth = status?.authentication || { authenticated: false, user: null } as any;
-        setState(prev => ({
-          ...prev,
-          initialized: true,
-          vpnConnected: status.vpn?.connected ?? true,
-          authenticated: !!auth.authenticated,
-          user: auth.user || null,
-          securityLevel: status.overall || 'critical',
-          loading: false
-        }));
-
-      } catch (error) {
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: error instanceof Error ? error.message : 'Security initialization failed'
-        }));
-        throw error;
+      // Re-run validation (safe) if already initialized
+      if (state.initialized && !state.loading) {
+        await runInitialization();
+        return;
       }
-    }, [securityOrchestrator]),
+      await runInitialization();
+    }, [runInitialization, state.initialized, state.loading]),
 
   login: useCallback(async (preferPasskey = true, provider: 'rust' | 'google' = 'rust') => {
       try {
@@ -120,13 +105,15 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
         if (result === 'passkey') {
           // Passkey authentication completed
           const status = await securityOrchestrator.validateSecurityPosture();
-          setState(prev => ({
-            ...prev,
-            authenticated: true,
-            user: status.authentication.user,
-            securityLevel: status.overall,
-            loading: false
-          }));
+            setState(prev => ({
+              ...prev,
+              authenticated: true,
+              user: status.authentication.user,
+              securityLevel: status.overall,
+              loading: false,
+              ready: true
+            }));
+            tokenManager.ensureSchedule();
         } else {
           // OAuth URL returned - redirect needed
           setState(prev => ({ ...prev, loading: false }));
@@ -155,8 +142,10 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
           authenticated: true,
           user,
           securityLevel: securityStatus.overall,
-          loading: false
+          loading: false,
+          ready: true
         }));
+  tokenManager.ensureSchedule();
 
         return user;
 
@@ -181,8 +170,10 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
           authenticated: false,
           user: null,
           securityLevel: 'critical',
-          loading: false
+          loading: false,
+          ready: true
         }));
+  tokenManager.clear();
 
       } catch (error) {
         setState(prev => ({
@@ -199,7 +190,7 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
         
         const passkey = await securityOrchestrator.registerPasskey(deviceName);
         
-        setState(prev => ({ ...prev, loading: false }));
+  setState(prev => ({ ...prev, loading: false, ready: true }));
         return passkey;
 
       } catch (error) {
@@ -223,7 +214,8 @@ const useSecurity = (): [SecurityState, SecurityActions] => {
           vpnConnected: status.vpn?.connected ?? true,
           authenticated: !!auth.authenticated,
           user: auth.user || null,
-          securityLevel: status.overall || 'critical'
+          securityLevel: status.overall || 'critical',
+          ready: prev.initialized ? prev.ready : true
         }));
 
       } catch (error) {

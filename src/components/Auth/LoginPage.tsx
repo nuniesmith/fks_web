@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Shield, Chrome, Key, Loader, AlertCircle, CheckCircle, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Shield, Chrome, Key, Loader, AlertCircle, CheckCircle, Lock, User, Eye, EyeOff, LogIn, ExternalLink } from 'lucide-react';
 import { useSecurityContext } from '../../context/SecurityContext';
 import AuthenticationSelector from './AuthenticationSelector';
 
@@ -15,7 +15,9 @@ const LoginPage: React.FC = () => {
 		user,
 		loading,
 		error: securityError,
-		validateSecurity
+		validateSecurity,
+		login: initiateAuthFlow,
+		completeLogin
 	} = useSecurityContext();
 
 	const [username, setUsername] = useState('');
@@ -25,10 +27,12 @@ const LoginPage: React.FC = () => {
 	const [formLoading, setFormLoading] = useState(false);
 	const [jwtPreview, setJwtPreview] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState<'primary' | 'credentials' | 'google'>('credentials');
+	const [redirecting, setRedirecting] = useState(false);
 
 	const googleEnabled = (localStorage.getItem('security.googleOAuth') ?? (import.meta as any).env?.VITE_GOOGLE_OAUTH) === 'true';
 
-	const rustAuthBase = (import.meta as any).env?.VITE_RUST_AUTH_URL || 'http://localhost:8001';
+	// Fallback port updated to 4100 to match auth service docker-compose
+	const rustAuthBase = (import.meta as any).env?.VITE_RUST_AUTH_URL || 'http://localhost:4100';
 
 	const decodeJwt = (token: string): any | null => {
 		try {
@@ -76,6 +80,39 @@ const LoginPage: React.FC = () => {
 			setFormLoading(false);
 		}
 	}, [username, password, rustAuthBase, validateSecurity]);
+
+	const startRustRedirect = useCallback(async () => {
+		try {
+			setRedirecting(true);
+			// Use orchestrator via security context login helper (returns URL for oauth/passkey flows) or build directly
+			const authBase = rustAuthBase.replace(/\/$/, '');
+			const ret = new URLSearchParams(window.location.search).get('returnTo') || '/';
+			window.location.href = `${authBase}/login?redirect_uri=${encodeURIComponent(window.location.origin + '/auth/callback?returnTo=' + encodeURIComponent(ret))}`;
+		} catch (e:any) {
+			setFormError(e.message || 'Failed to start auth redirect');
+			setRedirecting(false);
+		}
+	}, [rustAuthBase]);
+
+	const startGoogleOAuth = useCallback(async () => {
+		if (!googleEnabled) return;
+		try {
+			setRedirecting(true);
+			// Ask orchestrator for auth URL (through login(preferPasskey, 'google'))
+			const url = await initiateAuthFlow(false, 'google');
+			if (url && typeof url === 'string') {
+				const ret = new URLSearchParams(window.location.search).get('returnTo') || '/';
+				// Add state marker so callback can infer provider
+				const sep = url.includes('?') ? '&' : '?';
+				window.location.href = `${url}${sep}state=google_oauth::ret::${encodeURIComponent(ret)}`;
+			} else {
+				setRedirecting(false);
+			}
+		} catch (e:any) {
+			setFormError(e.message || 'Failed to start Google OAuth');
+			setRedirecting(false);
+		}
+	}, [initiateAuthFlow, googleEnabled]);
 
 	if (authenticated && user) {
 		return (
@@ -187,16 +224,34 @@ const LoginPage: React.FC = () => {
 						)}
 
 						{activeTab === 'primary' && (
-							<div className="mt-2">
-								<AuthenticationSelector className="shadow-none p-0" />
+							<div className="mt-2 space-y-4">
+								<h2 className="text-lg font-medium text-gray-900 dark:text-white mb-2 flex items-center"><LogIn className="h-5 w-5 mr-2" /> Primary Auth</h2>
+								<p className="text-sm text-gray-600 dark:text-gray-400">Use the Rust auth redirect flow (future: passkeys).</p>
+								<div className="flex flex-col space-y-3">
+									<button onClick={startRustRedirect} disabled={redirecting || loading} className="w-full flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50">
+										{redirecting ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+										Continue with Rust Auth
+									</button>
+									{googleEnabled && (
+										<button onClick={startGoogleOAuth} disabled={redirecting || loading} className="w-full flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50">
+											{redirecting ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Chrome className="h-4 w-4 mr-2" />}
+											Continue with Google
+										</button>
+									)}
+								</div>
+								<div className="mt-4 text-xs text-gray-500 dark:text-gray-400">Redirect-based authentication. You'll return here after granting access.</div>
 							</div>
 						)}
 
 						{activeTab === 'google' && googleEnabled && (
 							<div className="mt-2 space-y-4">
 								<h2 className="text-lg font-medium text-gray-900 dark:text-white flex items-center"><Chrome className="h-5 w-5 mr-2" /> Google OAuth</h2>
-								<p className="text-sm text-gray-600 dark:text-gray-400">Use your approved Google account for access.</p>
-								<AuthenticationSelector className="shadow-none p-0" />
+								<p className="text-sm text-gray-600 dark:text-gray-400">Federated sign-in via Google.</p>
+								<button onClick={startGoogleOAuth} disabled={redirecting || loading} className="w-full flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50">
+									{redirecting ? <Loader className="h-4 w-4 animate-spin mr-2" /> : <Chrome className="h-4 w-4 mr-2" />}
+									Sign in with Google
+								</button>
+								<div className="text-xs text-gray-500 dark:text-gray-400">Enabled via security.googleOAuth flag.</div>
 							</div>
 						)}
 					</div>
