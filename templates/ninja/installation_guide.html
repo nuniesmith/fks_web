@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}NT8 Installation Guide - FKS Trading{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-number {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        background: #007bff;
+        color: white;
+        border-radius: 50%;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+    
+    .code-block {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin: 10px 0;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .warning-box {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .info-box {
+        background: #d1ecf1;
+        border-left: 4px solid #17a2b8;
+        padding: 15px;
+        margin: 15px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1><i class="fas fa-book"></i> FKS NinjaTrader 8 Installation Guide</h1>
+            <p class="lead">Complete step-by-step instructions for deploying the FKS async socket strategy</p>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Before You Start:</strong> Ensure NinjaTrader 8 is installed and you have access to a prop firm account (Apex, TopStep, etc.)
+            </div>
+        </div>
+    </div>
+    
+    <!-- Package Contents -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-archive"></i> Package Contents</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="fas fa-file"></i> <strong>FKS.dll</strong> - Compiled .NET assembly (276 KB)
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-code"></i> <strong>FKS_AsyncStrategy.cs</strong> - Source code (330 lines)
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-file-code"></i> <strong>manifest.xml</strong> - Type registrations for NT8
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-file-code"></i> <strong>Info.xml</strong> - Export metadata
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-list"></i> <strong>AdditionalReferences.txt</strong> - External dependencies
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-readme"></i> <strong>README.txt</strong> - Installation instructions
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Prerequisites -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Prerequisites</h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li><strong>NinjaTrader 8</strong> (version 8.0.26 or later)</li>
+                        <li><strong>.NET Framework 4.8</strong></li>
+                        <li><strong>Windows 10/11</strong> (64-bit)</li>
+                        <li><strong>Prop Firm Account</strong> (Apex, TopStep, etc.) - Optional for testing</li>
+                        <li><strong>FKS Python Signal Sender</strong> - For testing socket connectivity</li>
+                    </ol>
+                    
+                    <div class="warning-box mt-3">
+                        <i class="fas fa-exclamation-circle"></i> 
+                        <strong>IMPORTANT:</strong> Close NinjaTrader 8 completely before importing the package.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Installation Steps -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-download"></i> Installation Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="installAccordion">
+                        <!-- Step 1 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                    <span class="step-number">1</span> Download Package
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#installAccordion">
+                                <div class="accordion-body">
+                                    <p>Visit the <a href="{% url 'ninja:dashboard' %}">NT8 Dashboard</a> and click the "Download NT8 Package" button.</p>
+                                    <div class="code-block">
+                                        Expected filename: FKS_AsyncStrategy_YYYYMMDD_HHMMSS.zip<br>
+                                        File size: ~112 KB
+                                    </div>
+                                    <p>Save the ZIP file to a temporary location (e.g., Downloads folder).</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                    <span class="step-number">2</span> Close NinjaTrader 8
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                <div class="accordion-body">
+                                    <div class="warning-box">
+                                        <i class="fas fa-stop-circle"></i> 
+                                        Ensure NT8 is completely closed before importing. Check Task Manager to confirm no NT8 processes are running.
+                                    </div>
+                                    <p>This prevents file locking issues and ensures clean import.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                                    <span class="step-number">3</span> Import to NinjaTrader 8
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                <div class="accordion-body">
+                                    <ol>
+                                        <li>Launch NinjaTrader 8</li>
+                                        <li>Open Control Center</li>
+                                        <li>Navigate to: <strong>Tools → Import → NinjaScript Add-On</strong></li>
+                                        <li>Browse to the downloaded ZIP file</li>
+                                        <li>Click <strong>Import</strong></li>
+                                        <li>Accept any security warnings (if prompted)</li>
+                                    </ol>
+                                    
+                                    <div class="info-box mt-3">
+                                        <i class="fas fa-lightbulb"></i> 
+                                        The ZIP file has a flat structure required by NT8. All files are in the root of the archive.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFour">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                                    <span class="step-number">4</span> Verify Installation
+                                </button>
+                            </h2>
+                            <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                <div class="accordion-body">
+                                    <p>After import, verify the strategy appears in NinjaScript Editor:</p>
+                                    <ol>
+                                        <li>Go to: <strong>Control Center → Tools → NinjaScript Editor</strong></li>
+                                        <li>Expand <strong>Strategies</strong> folder in left panel</li>
+                                        <li>Look for: <strong>FKS_AsyncStrategy</strong></li>
+                                    </ol>
+                                    <div class="code-block mt-3">
+                                        Expected location: C:\Users\[USER]\Documents\NinjaTrader 8\bin\Custom\Strategies\
+                                    </div>
+                                    <p class="mt-2">If not found, restart NinjaTrader 8 and check again.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 5 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFive">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive">
+                                    <span class="step-number">5</span> Configure Strategy
+                                </button>
+                            </h2>
+                            <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                <div class="accordion-body">
+                                    <p>Create a new strategy instance:</p>
+                                    <ol>
+                                        <li>Control Center → <strong>New → Strategy</strong></li>
+                                        <li>Template: Select <strong>FKS_AsyncStrategy</strong></li>
+                                        <li>Instrument: Choose your market (e.g., ES 03-25)</li>
+                                        <li>Data Series: 1 Minute (recommended for real-time)</li>
+                                        <li>Click <strong>OK</strong> to create</li>
+                                    </ol>
+                                    
+                                    <div class="info-box mt-3">
+                                        <i class="fas fa-cog"></i> 
+                                        <strong>Socket Port:</strong> The strategy listens on port 8080 by default. Ensure this port is not blocked by firewall.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 6 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingSix">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix">
+                                    <span class="step-number">6</span> Enable Strategy
+                                </button>
+                            </h2>
+                            <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                <div class="accordion-body">
+                                    <p>Activate the strategy to start listening for signals:</p>
+                                    <ol>
+                                        <li>In the Strategies window, check the <strong>Enabled</strong> checkbox</li>
+                                        <li>Confirm you want to start the strategy</li>
+                                        <li>Check <strong>Output Window</strong> (Tools → Output Window)</li>
+                                        <li>Look for: <code>[HH:mm:ss] Async socket listener started on port 8080</code></li>
+                                    </ol>
+                                    
+                                    <div class="warning-box mt-3">
+                                        <i class="fas fa-shield-alt"></i> 
+                                        If you see firewall warnings, allow NinjaTrader.exe to communicate on private networks.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 7 -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingSeven">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven">
+                                    <span class="step-number">7</span> Test Socket Connectivity
+                                </button>
+                            </h2>
+                            <div id="collapseSeven" class="accordion-collapse collapse" data-bs-parent="#installAccordion">
+                                <div class="accordion-body">
+                                    <p>Use the Python signal sender to verify connectivity:</p>
+                                    <div class="code-block">
+                                        python signal_sender.py
+                                    </div>
+                                    <p class="mt-2">Expected output in NT8 Output Window:</p>
+                                    <div class="code-block">
+                                        [HH:mm:ss] Signal received: {"action":"buy",...}<br>
+                                        ✓ LONG order: FKS_BUY_HHMMSS @ 4500.00, TP: 10t, SL: 5t
+                                    </div>
+                                    
+                                    <div class="info-box mt-3">
+                                        <i class="fas fa-check-circle"></i> 
+                                        If you see this output, socket connectivity is working! The strategy is ready for live signals.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Troubleshooting -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-wrench"></i> Troubleshooting</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="troubleshootAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#trouble1">
+                                    Strategy does not appear after import
+                                </button>
+                            </h2>
+                            <div id="trouble1" class="accordion-collapse collapse" data-bs-parent="#troubleshootAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Cause:</strong> NT8 cache not cleared</p>
+                                    <p><strong>Fix:</strong></p>
+                                    <ol>
+                                        <li>Close NT8 completely</li>
+                                        <li>Delete cache folder: <code>C:\Users\[USER]\Documents\NinjaTrader 8\cache\</code></li>
+                                        <li>Restart NT8</li>
+                                        <li>Re-import ZIP if necessary</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#trouble2">
+                                    Socket listener failed to start
+                                </button>
+                            </h2>
+                            <div id="trouble2" class="accordion-collapse collapse" data-bs-parent="#troubleshootAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Cause:</strong> Port 8080 already in use</p>
+                                    <p><strong>Fix:</strong></p>
+                                    <div class="code-block">
+                                        netstat -ano | findstr :8080
+                                    </div>
+                                    <p>Kill the process using port 8080, or change the port in strategy code and recompile.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#trouble3">
+                                    No signals received from FKS
+                                </button>
+                            </h2>
+                            <div id="trouble3" class="accordion-collapse collapse" data-bs-parent="#troubleshootAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Cause:</strong> Firewall blocking localhost traffic</p>
+                                    <p><strong>Fix:</strong></p>
+                                    <ol>
+                                        <li>Windows Firewall → Allow an app</li>
+                                        <li>Add NinjaTrader.exe to allowed apps</li>
+                                        <li>OR: Temporarily disable firewall for testing</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Support Links -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-question-circle"></i> Support & Resources</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-home"></i> 
+                            <a href="{% url 'ninja:dashboard' %}">NT8 Dashboard</a> - Manage packages and builds
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-file-code"></i> 
+                            <strong>signal_sender.py</strong> - Located in <code>src/services/ninja/</code>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-book"></i> 
+                            <strong>TESTING_GUIDE.md</strong> - Comprehensive 5-phase testing workflow
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-github"></i> 
+                            <a href="https://github.com/nuniesmith/fks" target="_blank">FKS GitHub Repository</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

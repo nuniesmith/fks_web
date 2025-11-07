@@ -1,0 +1,55 @@
+# FKS Web Service Requirements
+# Django Web UI with Vite frontend
+
+# Web Framework
+Django>=5.2.7
+djangorestframework>=3.15.2
+django-cors-headers>=4.7.0
+django-axes>=7.0.0
+python-dotenv>=1.0.1
+user-agents>=2.2.0
+
+# Database
+psycopg2-binary>=2.9.9
+redis>=5.2.0
+
+# Celery & Task Queue
+celery>=5.5.3
+celery[redis]>=5.5.3
+flower>=2.0.1
+django-celery-beat>=2.8.1
+django-celery-results>=2.6.0
+django-redis>=6.0.0
+
+# ASGI Server
+uvicorn[standard]>=0.27.0
+gunicorn>=21.2.0
+
+# API Client
+httpx>=0.26.0
+requests>=2.31.0
+
+# Templates & Static
+whitenoise>=6.6.0
+
+# Utils
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+sqlalchemy>=2.0.0
+psutil>=5.9.0
+loguru>=0.7.2
+aiohttp>=3.13.1
+alembic>=1.17.0
+pandas>=2.2.0
+numpy>=1.26.0,<2.0
+loguru>=0.7.2
+aiohttp>=3.13.1
+alembic>=1.17.0
+pandas>=2.2.0
+numpy>=1.26.0,<2.0
+
+# Development
+pytest>=7.4.3
+pytest-django>=4.7.0
+pytest-asyncio>=0.23.2

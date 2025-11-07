@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}NT8 Package Management - FKS Trading{% endblock %}
+
+{% block extra_css %}
+<style>
+    .build-status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    .status-green { background-color: #28a745; }
+    .status-yellow { background-color: #ffc107; }
+    .status-red { background-color: #dc3545; }
+    
+    .package-info {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .signal-success { color: #28a745; }
+    .signal-failed { color: #dc3545; }
+    
+    .latency-good { color: #28a745; }
+    .latency-ok { color: #ffc107; }
+    .latency-bad { color: #dc3545; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1><i class="fas fa-cogs"></i> NinjaTrader 8 Package Management</h1>
+            <p class="lead">Download, build, and deploy FKS async socket strategies</p>
+        </div>
+    </div>
+    
+    <!-- Build Status Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Build Status
+                        <button id="refresh-status" class="btn btn-sm btn-light float-end">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="build-status-container">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Checking build status...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Package Download Card -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-download"></i> Download Package</h5>
+                </div>
+                <div class="card-body">
+                    <div class="package-info">
+                        <h6>FKS Async Socket Strategy</h6>
+                        <ul class="mb-0">
+                            <li>FKS.dll (compiled assembly)</li>
+                            <li>FKS_AsyncStrategy.cs (source code)</li>
+                            <li>Installation guide (README.txt)</li>
+                            <li>Configuration files (manifest.xml, Info.xml)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'ninja:download_package' %}" class="btn btn-success btn-lg">
+                            <i class="fas fa-file-archive"></i> Download NT8 Package
+                        </a>
+                        <a href="{% url 'ninja:installation_guide' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-book"></i> View Installation Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manual Build Card -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-hammer"></i> Manual Build</h5>
+                </div>
+                <div class="card-body">
+                    <p>Manually trigger a fresh build if source code has changed.</p>
+                    
+                    <div class="alert alert-info">
+                        <strong>Build Location:</strong><br>
+                        <code>{{ build_script }}</code>
+                    </div>
+                    
+                    <button id="trigger-build" class="btn btn-warning w-100">
+                        <i class="fas fa-play"></i> Trigger Build
+                    </button>
+                    
+                    <div id="build-output" class="mt-3" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">Build Output</div>
+                            <div class="card-body">
+                                <pre id="build-log" class="mb-0" style="max-height: 300px; overflow-y: auto;"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Test Signal Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-paper-plane"></i> Test Signal Transmission</h5>
+                </div>
+                <div class="card-body">
+                    <p>Send a test signal to verify NT8 socket connectivity. Ensure NT8 strategy is running before testing.</p>
+                    
+                    <form id="test-signal-form">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="signal-action" class="form-label">Action</label>
+                                    <select class="form-select" id="signal-action" name="action" required>
+                                        <option value="buy">Buy (Long)</option>
+                                        <option value="sell">Sell (Short)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="signal-instrument" class="form-label">Instrument</label>
+                                    <input type="text" class="form-control" id="signal-instrument" 
+                                           name="instrument" value="ES 03-25" required>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    <label for="signal-price" class="form-label">Price</label>
+                                    <input type="number" class="form-control" id="signal-price" 
+                                           name="price" value="4500.00" step="0.25" required>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    <label for="signal-tp" class="form-label">TP (ticks)</label>
+                                    <input type="number" class="form-control" id="signal-tp" 
+                                           name="tp_points" value="10" required>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="mb-3">
+                                    <label for="signal-sl" class="form-label">SL (ticks)</label>
+                                    <input type="number" class="form-control" id="signal-sl" 
+                                           name="sl_points" value="5" required>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-paper-plane"></i> Send Test Signal
+                        </button>
+                    </form>
+                    
+                    <div id="signal-result" class="mt-3" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Signals Log -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Recent Signals</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Account</th>
+                                    <th>Action</th>
+                                    <th>Instrument</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                    <th>Latency</th>
+                                </tr>
+                            </thead>
+                            <tbody id="signals-table">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        No signals sent yet. Send a test signal to verify connectivity.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh build status every 10 seconds
+let statusInterval;
+
+function refreshBuildStatus() {
+    fetch('{% url "ninja:build_status" %}')
+        .then(response => response.json())
+        .then(data => {
+            updateBuildStatus(data);
+        })
+        .catch(error => {
+            console.error('Failed to fetch build status:', error);
+            document.getElementById('build-status-container').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Failed to load build status. Check console for details.
+                </div>
+            `;
+        });
+}
+
+function updateBuildStatus(data) {
+    let statusHtml = '';
+    let statusClass = 'status-green';
+    let statusText = 'Up to date';
+    
+    if (!data.dll_exists) {
+        statusClass = 'status-red';
+        statusText = 'DLL missing - build required';
+    } else if (data.build_required) {
+        statusClass = 'status-yellow';
+        statusText = 'Build required (source is newer)';
+    }
+    
+    statusHtml = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>
+                    <span class="build-status-indicator ${statusClass}"></span>
+                    ${statusText}
+                </h6>
+                <dl class="row mt-3">
+                    <dt class="col-sm-4">DLL Status:</dt>
+                    <dd class="col-sm-8">${data.dll_exists ? '✓ Exists' : '✗ Missing'}</dd>
+                    
+                    ${data.dll_exists ? `
+                    <dt class="col-sm-4">DLL Timestamp:</dt>
+                    <dd class="col-sm-8">${new Date(data.dll_timestamp).toLocaleString()}</dd>
+                    
+                    <dt class="col-sm-4">DLL Size:</dt>
+                    <dd class="col-sm-8">${data.dll_size_kb.toFixed(2)} KB</dd>
+                    ` : ''}
+                    
+                    <dt class="col-sm-4">Source Status:</dt>
+                    <dd class="col-sm-8">${data.source_exists ? '✓ Exists' : '✗ Missing'}</dd>
+                    
+                    ${data.source_exists ? `
+                    <dt class="col-sm-4">Source Timestamp:</dt>
+                    <dd class="col-sm-8">${new Date(data.source_timestamp).toLocaleString()}</dd>
+                    ` : ''}
+                </dl>
+            </div>
+            <div class="col-md-6">
+                ${data.build_required ? `
+                <div class="alert alert-warning">
+                    <strong>Rebuild Recommended</strong><br>
+                    ${data.reason || 'Source code is newer than compiled DLL'}
+                </div>
+                ` : `
+                <div class="alert alert-success">
+                    <strong>Build is Current</strong><br>
+                    No rebuild necessary. Package is ready for download.
+                </div>
+                `}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('build-status-container').innerHTML = statusHtml;
+}
+
+// Manual refresh button
+document.getElementById('refresh-status').addEventListener('click', function() {
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    
+    refreshBuildStatus();
+    
+    setTimeout(() => {
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-sync"></i> Refresh';
+    }, 1000);
+});
+
+// Trigger build button
+document.getElementById('trigger-build').addEventListener('click', function() {
+    if (!confirm('Trigger a manual build? This will take ~5 seconds.')) {
+        return;
+    }
+    
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Building...';
+    
+    fetch('{% url "ninja:trigger_build" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const outputDiv = document.getElementById('build-output');
+        const logPre = document.getElementById('build-log');
+        
+        logPre.textContent = data.output || data.error || 'No output';
+        outputDiv.style.display = 'block';
+        
+        if (data.success) {
+            alert('Build successful! Package is ready for download.');
+            refreshBuildStatus();
+        } else {
+            alert('Build failed. Check output for details.');
+        }
+    })
+    .catch(error => {
+        alert('Build request failed: ' + error);
+    })
+    .finally(() => {
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-play"></i> Trigger Build';
+    });
+});
+
+// Test signal form (placeholder - will implement in future phase)
+document.getElementById('test-signal-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const resultDiv = document.getElementById('signal-result');
+    resultDiv.innerHTML = `
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Signal Testing Coming Soon</strong><br>
+            This feature will be available once NT8 account management is implemented.
+            For now, use the Python signal_sender.py script for testing.
+        </div>
+    `;
+    resultDiv.style.display = 'block';
+});
+
+// Initial load and start auto-refresh
+refreshBuildStatus();
+statusInterval = setInterval(refreshBuildStatus, 10000);
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (statusInterval) {
+        clearInterval(statusInterval);
+    }
+});
+</script>
+{% endblock %}
