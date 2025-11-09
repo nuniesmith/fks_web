@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete API Key - FKS Trading Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'web_app:home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'authentication:api_keys_list' %}">API Keys</a></li>
+                <li class="breadcrumb-item active">Delete</li>
+            </ol>
+        </nav>
+        <h2>
+            <i class="bi bi-exclamation-triangle text-danger"></i>
+            Delete API Key
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Confirm Deletion</h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Warning:</strong> This action cannot be undone. The API key will be permanently deleted.
+                </div>
+                
+                <h5>API Key Details:</h5>
+                <table class="table table-sm">
+                    <tr>
+                        <th>Name:</th>
+                        <td><strong>{{ object.name }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Provider:</th>
+                        <td>{{ object.provider|default:"—" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Type:</th>
+                        <td>
+                            {% if object.is_global %}
+                            <span class="badge bg-primary">Global</span>
+                            {% else %}
+                            <span class="badge bg-secondary">User</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            {% if object.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if object.description %}
+                    <tr>
+                        <th>Description:</th>
+                        <td>{{ object.description }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="confirm" required>
+                        <label class="form-check-label" for="confirm">
+                            I understand this action cannot be undone
+                        </label>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'authentication:api_keys_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-danger" id="deleteBtn" disabled>
+                            <i class="bi bi-trash"></i> Delete API Key
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> Information</h6>
+            </div>
+            <div class="card-body">
+                <p class="small">
+                    Deleting an API key will permanently remove it from the database. 
+                    Any services using this key will need to be updated with a new key.
+                </p>
+                <p class="small text-muted">
+                    <strong>Tip:</strong> Consider deactivating the key instead of deleting it, 
+                    so you can reactivate it later if needed.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('confirm').addEventListener('change', function() {
+    document.getElementById('deleteBtn').disabled = !this.checked;
+});
+</script>
+{% endblock %}
+

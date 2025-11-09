@@ -113,11 +113,11 @@ graph TB
     Q -->|Feedback| A
     L -->|Update| A
     
-    style A fill:#667eea,stroke:#333,stroke-width:3px,color:#fff
-    style K fill:#198754,stroke:#333,stroke-width:2px,color:#fff
-    style P fill:#0dcaf0,stroke:#333,stroke-width:2px,color:#fff
-    style Q fill:#ffc107,stroke:#333,stroke-width:2px,color:#000
-    style F fill:#dc3545,stroke:#333,stroke-width:2px,color:#fff
+    style A fill:#667eea,stroke:#333,stroke-width:3px
+    style K fill:#198754,stroke:#333,stroke-width:2px
+    style P fill:#0dcaf0,stroke:#333,stroke-width:2px
+    style Q fill:#ffc107,stroke:#333,stroke-width:2px
+    style F fill:#dc3545,stroke:#333,stroke-width:2px
                 </div>
                 <div class="mt-3">
                     <h6>System Components:</h6>
@@ -144,7 +144,7 @@ graph TB
             <div class="card-body">
                 <p class="mb-2"><strong>Timeframe:</strong> 5m - 1h</p>
                 <p class="mb-2"><strong>Target:</strong> 0.5% - 2% per trade</p>
-                <p class="mb-2"><strong>Frequency:</strong> Multiple daily</p>
+                <p class="mb-2"><strong>Frequency:</strong> Intraday</p>
                 <p class="mb-2"><strong>Current Opportunities:</strong> <span class="badge bg-success">{{ scalp_count|default:"3" }}</span></p>
                 <hr>
                 <h6>Strategy Focus:</h6>
@@ -344,22 +344,52 @@ document.querySelectorAll('[data-theme-mermaid]').forEach(button => {
         
         // Reinitialize Mermaid with new theme
         mermaid.initialize({
-            startOnLoad: true,
+            startOnLoad: false,
             theme: theme,
             flowchart: { 
                 useMaxWidth: true, 
                 htmlLabels: true,
                 curve: 'basis'
             },
-            securityLevel: 'loose'
+            securityLevel: 'loose',
+            themeVariables: theme === 'dark' ? {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#333',
+                lineColor: '#888',
+                secondaryColor: '#198754',
+                tertiaryColor: '#ffc107',
+                background: '#1a1a1a',
+                mainBkg: '#2d2d2d',
+                secondBkg: '#1a1a1a',
+                textColor: '#fff',
+                border1: '#555',
+                border2: '#777'
+            } : {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#333',
+                lineColor: '#6c757d',
+                secondaryColor: '#198754',
+                tertiaryColor: '#ffc107'
+            }
         });
         
         // Reload the diagram
         const element = document.getElementById('fksFlowchart');
-        const graphDefinition = element.textContent;
+        const graphDefinition = element.textContent.trim();
         element.removeAttribute('data-processed');
         element.innerHTML = graphDefinition;
-        mermaid.init(undefined, element);
+        
+        // Use renderAsync for better error handling
+        mermaid.render('fksFlowchart-' + Date.now(), graphDefinition).then(function(result) {
+            element.innerHTML = result.svg;
+        }).catch(function(error) {
+            console.error('Mermaid render error:', error);
+            // Fallback: try init instead
+            element.innerHTML = graphDefinition;
+            mermaid.init(undefined, element);
+        });
     });
 });
 

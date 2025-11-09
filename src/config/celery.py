@@ -107,6 +107,51 @@ app.conf.beat_schedule = {
         'task': 'trading.tasks.archive_old_data_task',
         'schedule': crontab(hour=3, minute=0),  # Daily at 3 AM
     },
+    
+    # Multi-Provider Data Collection (from TODO.md research)
+    'collect-crypto-data': {
+        'task': 'data_collection.tasks.collect_crypto_data',
+        'schedule': crontab(minute='*/15'),  # Every 15 minutes
+        'kwargs': {
+            'symbols': ['BTC', 'ETH', 'BNB', 'SOL'],
+            'granularity': '1h',
+            'hours_back': 24,
+        },
+    },
+    'collect-stock-data': {
+        'task': 'data_collection.tasks.collect_stock_data',
+        'schedule': crontab(minute='*/30'),  # Every 30 minutes
+        'kwargs': {
+            'symbols': ['AAPL', 'MSFT', 'GOOGL', 'SPY'],
+            'granularity': '1d',
+            'days_back': 30,
+        },
+    },
+    'collect-market-overview': {
+        'task': 'data_collection.tasks.collect_market_overview',
+        'schedule': crontab(minute='*/60'),  # Every hour
+    },
+    'update-enabled-assets': {
+        'task': 'data_collection.tasks.update_enabled_assets_data',
+        'schedule': crontab(minute='*/5'),  # Every 5 minutes
+    },
+    
+    # ML Training & Retraining Tasks
+    'daily-model-update': {
+        'task': 'ml_training.tasks.daily_model_update',
+        'schedule': crontab(hour=2, minute=0),  # Daily at 2 AM
+        'kwargs': {
+            'symbols': ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT']
+        },
+    },
+    'evaluate-models': {
+        'task': 'ml_training.tasks.evaluate_model',
+        'schedule': crontab(hour=3, minute=0),  # Daily at 3 AM
+        'kwargs': {
+            'model_name': 'lstm_price_forecast',
+            'model_version': 'latest',
+        },
+    },
 }
 
 

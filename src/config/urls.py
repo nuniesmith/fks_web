@@ -26,15 +26,16 @@ urlpatterns = [
     path("auth/", include("authentication.urls")),  # ✅ Authentication endpoints
     path("api-auth/", include("rest_framework.urls")),  # ✅ DRF browsable API auth
     # App URLs
-    path("monitor/", include("monitor.urls")),  # ✅ Service monitoring
-    path("ninja/", include("services.web.src.ninja.urls")),  # ✅ NinjaTrader 8 integration
+    # path("monitor/", include("monitor.urls")),  # ✅ Service monitoring (commented out - not yet implemented)
+    # path("ninja/", include("services.web.src.ninja.urls")),  # ✅ NinjaTrader 8 integration (commented out - path issue)
+    path("ninja/", include("ninja.urls")),  # ✅ NinjaTrader 8 integration
     # path('trading/', include('trading.urls')),
     # path('forecasting/', include('forecasting.urls')),
     # path('chatbot/', include('chatbot.urls')),
     # path('rag/', include('rag.urls')),
     # path('api/', include('api.urls')),
     # Web UI - must be last to catch root path
-    path("", include("services.web.src.urls")),  # ✅ Web service URLs
+    path("", include("urls")),  # ✅ Web service URLs
 ]
 
 # Serve media files in development

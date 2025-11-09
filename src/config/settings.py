@@ -60,8 +60,9 @@ INSTALLED_APPS = [
     "axes",  # django-axes for login attempt tracking and blocking
     # Local apps - FKS Main orchestrator apps from /shared_src/
     "authentication",  # ✅ Authentication system
-    "core",  # ✅ Core models and database
-    "monitor",  # ✅ Service monitoring and health checks
+    "data_collection",  # ✅ Data collection with multi-provider manager
+    # "core",  # ✅ Core models and database (commented out - not yet implemented)
+    # "monitor",  # ✅ Service monitoring and health checks (commented out - not yet implemented)
 ]
 
 MIDDLEWARE = [
@@ -88,7 +89,8 @@ TEMPLATES = [
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [
             BASE_DIR / "templates",  # /app/templates (empty but left for compatibility)
-            Path("/app/shared_src/services/web/src/templates"),  # Actual templates location
+            BASE_DIR / "src" / "templates",  # /app/src/templates (actual templates location)
+            Path("/app/shared_src/services/web/src/templates"),  # Legacy path
         ],
         "APP_DIRS": True,
         "OPTIONS": {

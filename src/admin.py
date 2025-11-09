@@ -2,4 +2,7 @@
 
 from django.contrib import admin
 
-# Admin interfaces will be added as needed
+# Import admin from authentication app
+from authentication.admin import APIKeyAdmin, UserAdmin  # noqa: F401
+
+# Admin interfaces are registered in authentication.admin

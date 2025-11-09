@@ -2,8 +2,16 @@
 
 from django.urls import path
 
-from . import views
-from .health import HealthAPIView, HealthDashboardView
+# Use absolute imports since /app/src is in PYTHONPATH
+import views
+from health import HealthAPIView, HealthDashboardView
+from views.services import (
+    ServicesListView,
+    ServiceDetailView,
+    list_services,
+    run_analyze_analysis,
+    run_service_test,
+)
 
 app_name = "web_app"
 
@@ -23,6 +31,11 @@ urlpatterns = [
     path("intelligence/", views.IntelligenceView.as_view(), name="intelligence"),
     path("backtest/", views.BacktestView.as_view(), name="backtest"),
     path("settings/", views.SettingsView.as_view(), name="settings"),
+    # Service management
+    path("services/", ServicesListView.as_view(), name="services_list"),
+    path("services/<str:service_name>/", ServiceDetailView.as_view(), name="service_detail"),
+    path("services/<str:service_name>/test/", run_service_test, name="service_test"),
+    path("services/analyze/run/", run_analyze_analysis, name="run_analyze"),
     # Health monitoring
     path("ready", views.ready_check, name="ready_check_no_slash"),  # K8s probes (no slash)
     path("ready/", views.ready_check, name="ready_check"),  # K8s probes

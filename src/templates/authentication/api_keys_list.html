@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}API Keys - FKS Trading Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>
+                    <i class="bi bi-key"></i>
+                    API Keys
+                </h2>
+                <p class="text-muted">Manage encrypted API keys for external services</p>
+            </div>
+            {% if can_create %}
+            <a href="{% url 'authentication:api_key_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add API Key
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- API Keys Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-list-ul"></i> All API Keys</h6>
+            </div>
+            <div class="card-body">
+                {% if api_keys %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Provider</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Last Used</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key in api_keys %}
+                            <tr>
+                                <td>
+                                    <strong>{{ key.name }}</strong>
+                                    {% if key.expires_at and key.is_expired %}
+                                    <span class="badge bg-danger ms-1">Expired</span>
+                                    {% elif key.expires_at %}
+                                    <span class="badge bg-warning ms-1">Expires {{ key.expires_at|date:"M d, Y" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if key.provider %}
+                                    <span class="badge bg-info">{{ key.provider }}</span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if key.description %}
+                                    <small class="text-muted">{{ key.description|truncatewords:10 }}</small>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if key.is_global %}
+                                    <span class="badge bg-primary">Global</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">User</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="form-check form-switch">
+                                        <input 
+                                            class="form-check-input" 
+                                            type="checkbox" 
+                                            {% if key.is_active %}checked{% endif %}
+                                            onchange="toggleKeyStatus({{ key.id }})"
+                                            id="toggle-{{ key.id }}"
+                                        >
+                                        <label class="form-check-label" for="toggle-{{ key.id }}">
+                                            {% if key.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </label>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if key.last_used %}
+                                    <small>{{ key.last_used|timesince }} ago</small>
+                                    {% else %}
+                                    <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'authentication:api_key_edit' key.pk %}" 
+                                           class="btn btn-outline-primary" 
+                                           title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'authentication:api_key_delete' key.pk %}" 
+                                           class="btn btn-outline-danger" 
+                                           title="Delete"
+                                           onclick="return confirm('Are you sure you want to delete this API key?');">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-key fs-1 text-muted d-block mb-3"></i>
+                    <p class="text-muted">No API keys found.</p>
+                    {% if can_create %}
+                    <a href="{% url 'authentication:api_key_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Your First API Key
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Notice -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-shield-check"></i>
+            <strong>Security:</strong> All API keys are encrypted using Fernet symmetric encryption before storage. 
+            Keys are never displayed in plain text and can only be decrypted with the encryption key.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleKeyStatus(keyId) {
+    fetch(`{% url 'authentication:api_key_toggle' 0 %}`.replace('0', keyId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload page to update status
+            location.reload();
+        } else {
+            alert('Error toggling key status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error toggling key status');
+    });
+}
+</script>
+{% endblock %}
+

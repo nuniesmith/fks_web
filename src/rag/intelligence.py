@@ -23,6 +23,7 @@ class FKSIntelligence:
         embedding_model: str = "all-MiniLM-L6-v2",
         use_local: bool = True,
         local_llm_model: str = "llama3.2:3b",
+        use_google_ai: bool = True,
     ):
         """
         Initialize FKS Intelligence.
@@ -30,47 +31,83 @@ class FKSIntelligence:
         Args:
             openai_model: OpenAI model for generation (fallback)
             embedding_model: Model for embeddings (local or OpenAI)
-            use_local: Use local models instead of OpenAI API
+            use_local: Use local models instead of API (fallback)
             local_llm_model: Local LLM model name for Ollama
+            use_google_ai: Try Google AI API first (respects free tier limits)
         """
         self.openai_model = openai_model
         self.use_local = use_local
         self.local_llm_model = local_llm_model
+        self.use_google_ai = use_google_ai
+        self.llm_provider = None  # Will be set during initialization
 
         # Initialize RAG components
         self.processor = DocumentProcessor()
         self.embeddings = EmbeddingsService(model=embedding_model, use_local=use_local)
         self.retrieval = RetrievalService(embeddings_service=self.embeddings)
 
-        # Initialize LLM
+        # Initialize LLM with priority: Google AI > Ollama > OpenAI
+        if use_google_ai:
+            if self._init_google_ai():
+                return
+        
         if use_local:
-            self._init_local_llm()
-        else:
-            self._init_openai()
+            if self._init_local_llm():
+                return
+        
+        self._init_openai()
 
-    def _init_local_llm(self):
-        """Initialize local LLM"""
+    def _init_google_ai(self) -> bool:
+        """
+        Initialize Google AI client.
+        
+        Returns:
+            True if successfully initialized, False otherwise
+        """
+        try:
+            from src.rag.google_ai import create_google_ai_client
+            
+            self.google_ai = create_google_ai_client()
+            self.llm_provider = "google_ai"
+            print("✓ Using Google AI (Gemini) - free tier with rate limiting")
+            return True
+        except Exception as e:
+            print(f"⚠ Google AI not available: {e}")
+            return False
+    
+    def _init_local_llm(self) -> bool:
+        """
+        Initialize local LLM.
+        
+        Returns:
+            True if successfully initialized, False otherwise
+        """
         try:
             from src.rag.local_llm import create_local_llm
 
             self.llm = create_local_llm(
                 model_name=self.local_llm_model, backend="ollama"
             )
+            self.llm_provider = "ollama"
             print(f"✓ Using local LLM: {self.local_llm_model}")
+            return True
 
         except Exception as e:
             print(f"⚠ Local LLM not available: {e}")
-            print("  Falling back to OpenAI...")
-            self.use_local = False
-            self._init_openai()
+            return False
 
     def _init_openai(self):
         """Initialize OpenAI client"""
         if not OPENAI_API_KEY:
-            raise ValueError("OpenAI API key not set and local LLM not available")
+            raise ValueError("No LLM provider available: Google AI, Ollama, and OpenAI all failed")
 
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
-        print(f"✓ Using OpenAI: {self.openai_model}")
+        try:
+            from openai import OpenAI
+            self.client = OpenAI(api_key=OPENAI_API_KEY)
+            self.llm_provider = "openai"
+            print(f"✓ Using OpenAI: {self.openai_model}")
+        except ImportError:
+            raise ValueError("OpenAI package not installed. Run: pip install openai")
 
     def ingest_document(
         self,
@@ -377,10 +414,53 @@ Question: {question}
 
 Please provide a comprehensive answer based on the context above."""
 
-        if self.use_local:
-            return self._generate_local(user_prompt, system_prompt)
-        else:
+        # Try providers in priority order: Google AI > Ollama > OpenAI
+        if self.llm_provider == "google_ai":
+            try:
+                return self._generate_google_ai(user_prompt, system_prompt)
+            except Exception as e:
+                print(f"⚠ Google AI failed: {e}, falling back to Ollama")
+                # Fallback to Ollama
+                if self.use_local and hasattr(self, 'llm'):
+                    return self._generate_local(user_prompt, system_prompt)
+                # Fallback to OpenAI
+                if hasattr(self, 'client'):
+                    return self._generate_openai(user_prompt, system_prompt)
+                raise
+        
+        elif self.llm_provider == "ollama":
+            try:
+                return self._generate_local(user_prompt, system_prompt)
+            except Exception as e:
+                print(f"⚠ Ollama failed: {e}, falling back to OpenAI")
+                if hasattr(self, 'client'):
+                    return self._generate_openai(user_prompt, system_prompt)
+                raise
+        
+        elif self.llm_provider == "openai":
             return self._generate_openai(user_prompt, system_prompt)
+        
+        else:
+            raise ValueError("No LLM provider initialized")
+
+    def _generate_google_ai(self, prompt: str, system_prompt: str) -> str:
+        """Generate response using Google AI (Gemini)"""
+        try:
+            from src.rag.google_ai import RateLimitError
+            
+            response = self.google_ai.generate(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                temperature=0.7,
+                max_tokens=1000,
+            )
+            return response
+        except RateLimitError as e:
+            # Rate limit exceeded, fallback to Ollama
+            print(f"⚠ Google AI rate limit: {e}")
+            raise
+        except Exception as e:
+            return f"Error generating response: {str(e)}"
 
     def _generate_local(self, prompt: str, system_prompt: str) -> str:
         """Generate response using local LLM"""
@@ -395,6 +475,7 @@ Please provide a comprehensive answer based on the context above."""
     def _generate_openai(self, prompt: str, system_prompt: str) -> str:
         """Generate response using OpenAI"""
         try:
+            from openai import OpenAI
             response = self.client.chat.completions.create(
                 model=self.openai_model,
                 messages=[
@@ -433,7 +514,7 @@ Please provide a comprehensive answer based on the context above."""
                         for chunk in retrieved_chunks
                     ]
                 },
-                model_used=self.openai_model,
+                model_used=self.llm_provider or self.openai_model,
                 response_time_ms=response_time,
             )
             session.add(log_entry)
@@ -447,14 +528,16 @@ def create_intelligence(
     use_local: bool = True,
     local_llm_model: str = "llama3.2:3b",
     embedding_model: str = "all-MiniLM-L6-v2",
+    use_google_ai: bool = True,
 ) -> FKSIntelligence:
     """
-    Create FKS Intelligence instance with local or OpenAI models.
+    Create FKS Intelligence instance with priority: Google AI > Ollama > OpenAI.
 
     Args:
-        use_local: Use local CUDA-accelerated models (default: True)
+        use_local: Use local CUDA-accelerated models as fallback (default: True)
         local_llm_model: Ollama model name (e.g., "llama3.2:3b", "mistral:7b")
         embedding_model: Embedding model name
+        use_google_ai: Try Google AI API first (respects free tier limits, default: True)
 
     Returns:
         FKSIntelligence instance
@@ -463,4 +546,5 @@ def create_intelligence(
         use_local=use_local,
         local_llm_model=local_llm_model,
         embedding_model=embedding_model,
+        use_google_ai=use_google_ai,
     )

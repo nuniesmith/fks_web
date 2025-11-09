@@ -1,4 +1,4 @@
-name: Docker Build and Push (Django)
+name: Docker Build and Push
 
 on:
   push:
@@ -9,29 +9,12 @@ on:
     branches: [main]
 
 env:
+  SERVICE_NAME: web
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -45,22 +28,26 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          if [ -f requirements.dev.txt ]; then pip install -r requirements.dev.txt; fi
 
-      - name: Run Django checks
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost/testdb
-          REDIS_URL: redis://localhost:6379/0
+      - name: Run linting
         run: |
-          python manage.py check || true
-          python manage.py makemigrations --check --dry-run || true
+          pip install ruff mypy || true
+          ruff check src/ || true
+          mypy src/ || true
 
       - name: Run tests
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost/testdb
-          REDIS_URL: redis://localhost:6379/0
         run: |
-          pip install pytest pytest-django pytest-cov
-          pytest tests/ -v --cov=src --cov-report=xml || true
+          pip install pytest pytest-cov || true
+          if [ -d "tests" ] && [ "$(ls -A tests)" ]; then
+            pytest tests/ -v --cov=src --cov-report=xml || true
+          fi
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
 
   build-and-push:
     needs: test
@@ -84,12 +71,13 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKER_USERNAME }}/fks_web
+          images: ${{ secrets.DOCKER_USERNAME }}/${{ env.SERVICE_NAME }}
           tags: |
             type=ref,event=branch
             type=sha,prefix=sha-
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image

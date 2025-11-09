@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ service.name }} - FKS Trading Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'web_app:home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'web_app:services_list' %}">Services</a></li>
+                <li class="breadcrumb-item active">{{ service.name }}</li>
+            </ol>
+        </nav>
+        <h2>
+            <i class="bi bi-box"></i>
+            {{ service.name }}
+        </h2>
+        <p class="text-muted">{{ service.description }}</p>
+    </div>
+</div>
+
+<!-- Service Status -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-heart-pulse"></i> Health Status</h6>
+            </div>
+            <div class="card-body">
+                {% if health_status == "healthy" %}
+                <span class="badge bg-success fs-6">Healthy</span>
+                {% elif health_status == "unhealthy" %}
+                <span class="badge bg-danger fs-6">Unhealthy</span>
+                {% else %}
+                <span class="badge bg-warning fs-6">Unreachable</span>
+                {% endif %}
+                {% if health_error %}
+                <p class="text-danger small mt-2">{{ health_error }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> Service Info</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Port:</strong> {{ service.port }}</p>
+                <p class="mb-1"><strong>Base URL:</strong> <code>{{ service.base_url }}</code></p>
+                <p class="mb-0"><strong>Health URL:</strong> <code>{{ service.health_url }}</code></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-tools"></i> Actions</h6>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-sm btn-primary mb-2 w-100" onclick="runHealthTest()">
+                    <i class="bi bi-arrow-repeat"></i> Test Health
+                </button>
+                {% if "api_test" in service.features %}
+                <button class="btn btn-sm btn-secondary mb-2 w-100" onclick="runApiTest()">
+                    <i class="bi bi-lightning"></i> Test API
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Health Data -->
+{% if health_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-clipboard-data"></i> Health Data</h6>
+            </div>
+            <div class="card-body">
+                <pre class="p-3 rounded" style="background-color: var(--fks-light);"><code>{{ health_data }}</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Service-Specific Features -->
+{% if service_name == "fks-analyze" and analysis_features %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-graph-up"></i> Analysis Features</h6>
+            </div>
+            <div class="card-body">
+                <h6>Available Analyses:</h6>
+                <ul>
+                    {% for analysis in analysis_features.available_analyses %}
+                    <li>{{ analysis }}</li>
+                    {% endfor %}
+                </ul>
+                <h6 class="mt-3">API Endpoints:</h6>
+                <ul>
+                    {% for endpoint in analysis_features.endpoints %}
+                    <li><code>{{ endpoint }}</code></li>
+                    {% endfor %}
+                </ul>
+                <div class="mt-3">
+                    <button class="btn btn-primary" onclick="runAnalysis()">
+                        <i class="bi bi-play-circle"></i> Run Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if service_name == "fks-ai" and ai_features %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-robot"></i> AI Features</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Models:</strong> {{ ai_features.models|join:", " }}</p>
+                <p><strong>RAG Enabled:</strong> {% if ai_features.rag_enabled %}Yes{% else %}No{% endif %}</p>
+                {% if ai_features.google_ai_usage %}
+                <h6 class="mt-3">Google AI Usage:</h6>
+                <ul>
+                    <li>Minute: {{ ai_features.google_ai_usage.minute_usage }}/{{ ai_features.google_ai_usage.minute_limit }}</li>
+                    <li>Daily: {{ ai_features.google_ai_usage.day_usage }}/{{ ai_features.google_ai_usage.day_limit }}</li>
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function runHealthTest() {
+    fetch("{% url 'web_app:service_test' service_name=service_name %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'test_type=health'
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('Test Result: ' + JSON.stringify(data, null, 2));
+        location.reload();
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function runApiTest() {
+    fetch("{% url 'web_app:service_test' service_name=service_name %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'test_type=api'
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('API Test Result: ' + JSON.stringify(data, null, 2));
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function runAnalysis() {
+    const analysisType = prompt('Enter analysis type:', 'strategy');
+    if (!analysisType) return;
+    
+    fetch("{% url 'web_app:run_analyze' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `analysis_type=${analysisType}&parameters={}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('Analysis Result: ' + JSON.stringify(data, null, 2));
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+</script>
+{% endblock %}
+

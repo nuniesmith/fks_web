@@ -94,6 +94,12 @@
                             <i class="bi bi-robot"></i> AI Insights
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'services_list' or request.resolver_match.url_name == 'service_detail' %}active{% endif %}" 
+                           href="{% url 'web_app:services_list' %}">
+                            <i class="bi bi-server"></i> Services
+                        </a>
+                    </li>
                 </ul>
                 
                 <!-- Right side nav items -->
@@ -110,6 +116,9 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="#"><i class="bi bi-person"></i> Profile</a></li>
                             <li><a class="dropdown-item" href="{% url 'web_app:settings' %}"><i class="bi bi-gear"></i> Settings</a></li>
+                            {% if user.is_staff or user.is_superuser %}
+                            <li><a class="dropdown-item" href="{% url 'authentication:api_keys_list' %}"><i class="bi bi-key"></i> API Keys</a></li>
+                            {% endif %}
                             <li><a class="dropdown-item" href="{% url 'web_app:health_dashboard' %}"><i class="bi bi-heart-pulse"></i> Health</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'web_app:logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>

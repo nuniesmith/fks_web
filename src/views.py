@@ -14,7 +14,7 @@ from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
 from django.views.generic import TemplateView
 
-from .db_helpers import (
+from db_helpers import (
     get_account_summary,
     get_active_positions,
     get_balance_history,
