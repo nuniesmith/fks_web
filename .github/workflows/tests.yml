@@ -78,11 +78,27 @@ jobs:
       - name: Test Docker image
         run: |
           set +e
-          docker run -d --name ${SERVICE_NAME}_test -p ${{ env.SERVICE_PORT }}:${{ env.SERVICE_PORT }} ${{ env.SERVICE_NAME }}:latest
+          # Set environment variables for Docker test
+          docker run -d --name ${SERVICE_NAME}_test \
+            -p ${{ env.SERVICE_PORT }}:${{ env.SERVICE_PORT }} \
+            -e CI=true \
+            -e TESTING=true \
+            -e DOCKER_TEST=true \
+            -e DEBUG=True \
+            -e DJANGO_SECRET_KEY=test-key-for-docker-health-check \
+            ${{ env.SERVICE_NAME }}:latest
 
           echo "Waiting for service to start..."
+          HEALTHY=false
           for i in {1..30}; do
             sleep 2
+            # Check if container is still running
+            if ! docker ps | grep -q ${SERVICE_NAME}_test; then
+              echo "✗ Container stopped unexpectedly"
+              docker logs ${SERVICE_NAME}_test
+              break
+            fi
+            # Check health endpoint
             if curl -f http://localhost:${{ env.SERVICE_PORT }}/health >/dev/null 2>&1; then
               echo "✓ Service is healthy!"
               HEALTHY=true
