@@ -24,12 +24,20 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY requirements.txt ./
 
 # Install numpy first as a build dependency for torch, sentence-transformers, and other packages
+# Use --no-cache-dir to reduce disk usage in CI
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip install --user --no-warn-script-location "numpy>=1.26.0,<2.0"
+    python -m pip install --user --no-warn-script-location --no-cache-dir "numpy>=1.26.0,<2.0"
 
 # Install Python dependencies with BuildKit cache mount
+# Split installation to reduce memory usage and allow better caching
+# Install torch separately first (largest package)
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip install --user --no-warn-script-location -r requirements.txt
+    python -m pip install --user --no-warn-script-location --no-cache-dir "torch>=2.0.0" || \
+    (echo "Torch installation failed, continuing with other packages..." && true)
+
+# Install remaining dependencies
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --user --no-warn-script-location --no-cache-dir -r requirements.txt
 
 # Runtime stage
 FROM python:3.12-slim
