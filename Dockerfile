@@ -23,6 +23,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Copy dependency files (for better layer caching)
 COPY requirements.txt ./
 
+# Install numpy first as a build dependency for torch, sentence-transformers, and other packages
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --user --no-warn-script-location "numpy>=1.26.0,<2.0"
+
 # Install Python dependencies with BuildKit cache mount
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install --user --no-warn-script-location -r requirements.txt
