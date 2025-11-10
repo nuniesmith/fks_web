@@ -3,10 +3,17 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies needed for torch, sentence-transformers, cryptography, numpy
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
+    make \
+    cmake \
+    git \
+    pkg-config \
+    libffi-dev \
+    libssl-dev \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip, setuptools, and wheel (better caching with BuildKit)
