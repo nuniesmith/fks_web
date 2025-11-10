@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Service Test - {{ service_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-server"></i> Service Test: {{ service_name|upper }}</h1>
+        <div>
+            <a href="{% url 'dev:dashboard' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <button class="btn btn-primary" onclick="testService()">
+                <i class="bi bi-play-circle"></i> Run Test
+            </button>
+        </div>
+    </div>
+
+    <!-- Service Info -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Service Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ service_info.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Port:</th>
+                            <td>{{ service_info.port }}</td>
+                        </tr>
+                        <tr>
+                            <th>Base URL:</th>
+                            <td><code>{{ service_info.base_url }}</code></td>
+                        </tr>
+                        <tr>
+                            <th>Health URL:</th>
+                            <td><code>{{ service_info.health_url }}</code></td>
+                        </tr>
+                        {% if service_info.dependencies %}
+                        <tr>
+                            <th>Dependencies:</th>
+                            <td>
+                                {% for dep in service_info.dependencies %}
+                                    <span class="badge bg-info">{{ dep }}</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Test Status</h5>
+                </div>
+                <div class="card-body">
+                    <h3>
+                        {% if test_result.status == 'healthy' %}
+                            <span class="badge bg-success">HEALTHY</span>
+                        {% elif test_result.status == 'unhealthy' %}
+                            <span class="badge bg-danger">UNHEALTHY</span>
+                        {% else %}
+                            <span class="badge bg-warning">UNREACHABLE</span>
+                        {% endif %}
+                    </h3>
+                    <p><strong>Timestamp:</strong> {{ test_result.timestamp }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Test Results</h5>
+                </div>
+                <div class="card-body">
+                    {% for test_name, test_data in test_result.tests.items %}
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">{{ test_name|title }} Test</h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Status:</strong> 
+                                {% if test_data.status == 'healthy' or test_data.status == 'ready' or test_data.status == 'success' %}
+                                    <span class="badge bg-success">{{ test_data.status|upper }}</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ test_data.status|upper }}</span>
+                                {% endif %}
+                            </p>
+                            {% if test_data.status_code %}
+                                <p><strong>Status Code:</strong> {{ test_data.status_code }}</p>
+                            {% endif %}
+                            {% if test_data.error %}
+                                <p><strong>Error:</strong> <span class="text-danger">{{ test_data.error }}</span></p>
+                            {% endif %}
+                            {% if test_data.url %}
+                                <p><strong>URL:</strong> <code>{{ test_data.url }}</code></p>
+                            {% endif %}
+                            {% if test_data.data %}
+                                <details>
+                                    <summary>Response Data</summary>
+                                    <pre><code>{% if test_data.data|length > 100 %}{{ test_data.data|slice:":100" }}...{% else %}{{ test_data.data }}{% endif %}</code></pre>
+                                </details>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Raw JSON -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#jsonData">
+                            <i class="bi bi-code"></i> Raw Test Data (JSON)
+                        </button>
+                    </h5>
+                </div>
+                <div id="jsonData" class="collapse">
+                    <div class="card-body">
+                        <pre><code>{{ test_result_json }}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function testService() {
+    fetch(`/dev/api/test/{{ service_name }}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Test result:', data);
+        alert(`Test completed. Status: ${data.status}`);
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error testing service: ' + error.message);
+    });
+}
+</script>
+{% endblock %}
+

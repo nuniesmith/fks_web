@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Portfolio Signals - FKS Trading Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="bi bi-signpost"></i>
+            Trading Signals
+        </h2>
+        <p class="text-muted">AI-enhanced trading signals with bias detection</p>
+    </div>
+</div>
+
+<!-- Category Filter -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" action="{% url 'portfolio:signals' %}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="category" class="form-label">Trade Category</label>
+                            <select class="form-select" id="category" name="category">
+                                <option value="scalp" {% if category == 'scalp' %}selected{% endif %}>Scalp</option>
+                                <option value="intraday" {% if category == 'intraday' %}selected{% endif %}>Intraday</option>
+                                <option value="swing" {% if category == 'swing' %}selected{% endif %}>Swing</option>
+                                <option value="long_term" {% if category == 'long_term' %}selected{% endif %}>Long-term</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-funnel"></i>
+                                Filter Signals
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle"></i>
+    {{ error }}
+</div>
+{% endif %}
+
+<!-- Signal Summary -->
+{% if summary %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Signal Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <p class="mb-0"><strong>Total Signals:</strong> {{ summary.totals.count|default:0 }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-0"><strong>Buy Signals:</strong> {{ summary.totals.buy|default:0 }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-0"><strong>Sell Signals:</strong> {{ summary.totals.sell|default:0 }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-0"><strong>Category:</strong> {{ category|title }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Signals List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list-ul"></i>
+                    Generated Signals
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if signals %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Entry</th>
+                                <th>Take Profit</th>
+                                <th>Stop Loss</th>
+                                <th>R/R</th>
+                                <th>Size</th>
+                                <th>Strength</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for signal in signals %}
+                            <tr>
+                                <td><strong>{{ signal.symbol }}</strong></td>
+                                <td>
+                                    <span class="badge bg-{% if signal.signal_type == 'buy' %}success{% else %}danger{% endif %}">
+                                        {{ signal.signal_type|upper }}
+                                    </span>
+                                </td>
+                                <td>{{ signal.category|title }}</td>
+                                <td>${{ signal.entry_price|floatformat:2 }}</td>
+                                <td class="text-success">${{ signal.take_profit|floatformat:2 }} (+{{ signal.take_profit_pct|floatformat:2 }}%)</td>
+                                <td class="text-danger">${{ signal.stop_loss|floatformat:2 }} (-{{ signal.stop_loss_pct|floatformat:2 }}%)</td>
+                                <td>{{ signal.risk_reward_ratio|floatformat:2 }}</td>
+                                <td>{{ signal.position_size_pct|floatformat:2 }}%</td>
+                                <td>
+                                    <span class="badge bg-{% if signal.strength == 'very_strong' %}danger{% elif signal.strength == 'strong' %}warning{% elif signal.strength == 'moderate' %}info{% else %}secondary{% endif %}">
+                                        {{ signal.strength|title }}
+                                    </span>
+                                </td>
+                                <td>{{ signal.confidence|floatformat:1 }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center text-muted">No signals generated for this category</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Back to Dashboard -->
+<div class="row mt-4">
+    <div class="col-12">
+        <a href="{% url 'portfolio:dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+

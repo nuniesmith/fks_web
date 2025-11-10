@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Portfolio Dashboard - FKS Trading Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="bi bi-wallet2"></i>
+            Portfolio Dashboard
+        </h2>
+        <p class="text-muted">AI-optimized portfolio management with BTC as core backing</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle"></i>
+    {{ error }}
+</div>
+{% endif %}
+
+<!-- Portfolio Overview -->
+<div class="row mb-4">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2">Enabled Assets</h6>
+                <h3 class="mb-0">{{ overview.assets.enabled_count|default:0 }}</h3>
+                <small>{{ overview.assets.tracked|default:0 }} tracked</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2">Active Signals</h6>
+                <h3 class="mb-0">{{ signals.totals.count|default:0 }}</h3>
+                <small>{{ signals.totals.buy|default:0 }} buy, {{ signals.totals.sell|default:0 }} sell</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2">Avg Confidence</h6>
+                <h3 class="mb-0">{{ signals.totals.avg_confidence|default:0|floatformat:1 }}%</h3>
+                <small>Signal quality</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Portfolio Allocation Chart -->
+<div class="row mb-4">
+    <div class="col-lg-6 col-md-12 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i>
+                    Portfolio Allocation
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="allocationChart" width="400" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6 col-md-12 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-graph-up"></i>
+                    Asset Prices
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Price</th>
+                                <th>24h Change</th>
+                                <th>Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for symbol, data in overview.assets.prices.items %}
+                            <tr>
+                                <td><strong>{{ symbol }}</strong></td>
+                                <td>${{ data.price|floatformat:2 }}</td>
+                                <td class="{% if data.change_24h > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ data.change_24h|floatformat:2 }}%
+                                </td>
+                                <td>{{ data.volume|floatformat:0 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No asset data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Signal Summary by Category -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-signpost"></i>
+                    Signal Summary by Category
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for category, data in signals.by_category.items %}
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ category|title }}</h6>
+                                <p class="mb-1"><strong>{{ data.count }}</strong> signals</p>
+                                <p class="mb-1">Buy: {{ data.buy }}, Sell: {{ data.sell }}</p>
+                                <p class="mb-0">
+                                    <small class="text-muted">
+                                        Confidence: {{ data.avg_confidence|floatformat:1 }}%
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <p class="text-center text-muted">No signals available</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-link-45deg"></i>
+                    Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'portfolio:signals' %}" class="btn btn-primary me-2">
+                    <i class="bi bi-signpost"></i>
+                    View All Signals
+                </a>
+                <a href="{% url 'portfolio:performance' %}" class="btn btn-info me-2">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    Performance Metrics
+                </a>
+                <a href="{% url 'web_app:services_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-gear"></i>
+                    Service Management
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js for allocation chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Portfolio Allocation Chart
+    const allocationData = {{ allocation_data|safe }};
+    
+    if (allocationData && allocationData.length > 0) {
+        const ctx = document.getElementById('allocationChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: allocationData.map(item => item.symbol),
+                datasets: [{
+                    data: allocationData.map(item => item.weight_pct),
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB',
+                        '#FFCE56',
+                        '#4BC0C0',
+                        '#9966FF',
+                        '#FF9F40'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed.toFixed(2) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
+

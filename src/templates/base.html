@@ -83,15 +83,27 @@
                             <li><a class="dropdown-item" href="{% url 'web_app:settings' %}"><i class="bi bi-gear"></i> Settings</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'portfolio' in request.resolver_match.url_name %}active{% endif %}" 
+                           href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-wallet2"></i> Portfolio
                         </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'portfolio:dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{% url 'portfolio:signals' %}"><i class="bi bi-signpost"></i> Signals</a></li>
+                            <li><a class="dropdown-item" href="{% url 'portfolio:performance' %}"><i class="bi bi-graph-up-arrow"></i> Performance</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'intelligence' %}active{% endif %}" 
                            href="{% url 'web_app:intelligence' %}">
                             <i class="bi bi-robot"></i> AI Insights
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'dev' in request.resolver_match.url_name %}active{% endif %}" 
+                           href="{% url 'dev:dashboard' %}">
+                            <i class="bi bi-code-slash"></i> Dev
                         </a>
                     </li>
                     <li class="nav-item">
@@ -149,7 +161,7 @@
     <!-- Footer -->
     <footer class="bg-dark text-white text-center py-3 mt-5">
         <div class="container">
-            <p class="mb-0">&copy; 2025 FKS Trading Platform. All rights reserved.</p>
+            <p class="mb-0">&copy; 2025 nuniesmith. All rights reserved.</p>
             <small class="text-muted">Built with Django & Bootstrap</small>
         </div>
     </footer>

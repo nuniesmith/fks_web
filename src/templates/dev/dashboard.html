@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dev Dashboard - FKS Services{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-code-slash"></i> Dev Dashboard - FKS Services</h1>
+        <button class="btn btn-primary" onclick="refreshTests()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh Tests
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Total Services</h5>
+                    <h2>{{ summary.total }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Healthy</h5>
+                    <h2>{{ summary.healthy }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Unhealthy</h5>
+                    <h2>{{ summary.unhealthy }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Unreachable</h5>
+                    <h2>{{ summary.unreachable }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services Grid -->
+    <div class="row">
+        {% for service_name, service_data in services_data.items %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 {% if service_data.status == 'healthy' %}border-success{% elif service_data.status == 'unhealthy' %}border-danger{% else %}border-warning{% endif %}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if service_data.status == 'healthy' %}
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif service_data.status == 'unhealthy' %}
+                            <i class="bi bi-x-circle-fill text-danger"></i>
+                        {% else %}
+                            <i class="bi bi-exclamation-circle-fill text-warning"></i>
+                        {% endif %}
+                        {{ service_data.name|upper }}
+                    </h5>
+                    <span class="badge bg-{% if service_data.status == 'healthy' %}success{% elif service_data.status == 'unhealthy' %}danger{% else %}warning{% endif %}">
+                        {{ service_data.status|upper }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <strong>Port:</strong> {{ service_data.port }}<br>
+                        <strong>Base URL:</strong> <code>{{ service_data.base_url }}</code>
+                    </p>
+                    
+                    <!-- Health Test -->
+                    {% if service_data.tests.health %}
+                    <div class="mb-2">
+                        <strong>Health:</strong>
+                        {% if service_data.tests.health.status == 'healthy' %}
+                            <span class="badge bg-success">✓ Healthy</span>
+                        {% else %}
+                            <span class="badge bg-danger">✗ {{ service_data.tests.health.status }}</span>
+                            {% if service_data.tests.health.error %}
+                                <small class="text-danger d-block">{{ service_data.tests.health.error }}</small>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Ready Test -->
+                    {% if service_data.tests.ready %}
+                    <div class="mb-2">
+                        <strong>Ready:</strong>
+                        {% if service_data.tests.ready.status == 'ready' %}
+                            <span class="badge bg-success">✓ Ready</span>
+                        {% else %}
+                            <span class="badge bg-warning">✗ Not Ready</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Service-Specific Tests -->
+                    {% for test_name, test_result in service_data.tests.items %}
+                        {% if test_name != 'health' and test_name != 'ready' %}
+                        <div class="mb-1">
+                            <small>
+                                <strong>{{ test_name|title }}:</strong>
+                                {% if test_result.status == 'success' %}
+                                    <span class="badge bg-success">✓</span>
+                                {% else %}
+                                    <span class="badge bg-danger">✗</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'dev:service_test' service_name %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-info-circle"></i> View Details
+                    </a>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="testService('{{ service_name }}')">
+                        <i class="bi bi-play-circle"></i> Test Now
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Test Results JSON (Collapsible) -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#jsonResults">
+                            <i class="bi bi-code"></i> Raw Test Results (JSON)
+                        </button>
+                    </h5>
+                </div>
+                <div id="jsonResults" class="collapse">
+                    <div class="card-body">
+                        <pre><code>{{ test_results_json }}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshTests() {
+    window.location.reload();
+}
+
+function testService(serviceName) {
+    fetch(`/dev/api/test/${serviceName}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Test result:', data);
+        alert(`Service ${serviceName} test completed. Status: ${data.status}`);
+        window.location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error testing service: ' + error.message);
+    });
+}
+
+// Auto-refresh every 30 seconds
+setTimeout(() => {
+    refreshTests();
+}, 30000);
+</script>
+{% endblock %}
+

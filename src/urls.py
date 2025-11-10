@@ -1,6 +1,6 @@
 """Web UI URL patterns."""
 
-from django.urls import path
+from django.urls import path, include
 
 # Use absolute imports since /app/src is in PYTHONPATH
 import views
@@ -47,4 +47,8 @@ urlpatterns = [
     path("api/performance", views.api_performance, name="api_performance"),
     path("api/signals", views.api_signals, name="api_signals"),
     path("api/assets", views.api_assets, name="api_assets"),
+    # Portfolio app
+    path("portfolio/", include("portfolio.urls")),
+    # Dev interface
+    path("dev/", include("dev.urls")),
 ]

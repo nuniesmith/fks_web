@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Portfolio Performance - FKS Trading Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="bi bi-graph-up-arrow"></i>
+            Portfolio Performance
+        </h2>
+        <p class="text-muted">Performance metrics and asset comparison</p>
+    </div>
+</div>
+
+<!-- Time Period Filter -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" action="{% url 'portfolio:performance' %}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="days" class="form-label">Time Period (Days)</label>
+                            <select class="form-select" id="days" name="days">
+                                <option value="7" {% if performance.period_days == 7 %}selected{% endif %}>7 Days</option>
+                                <option value="30" {% if performance.period_days == 30 %}selected{% endif %}>30 Days</option>
+                                <option value="90" {% if performance.period_days == 90 %}selected{% endif %}>90 Days</option>
+                                <option value="180" {% if performance.period_days == 180 %}selected{% endif %}>180 Days</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-funnel"></i>
+                                Update Metrics
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle"></i>
+    {{ error }}
+</div>
+{% endif %}
+
+<!-- Aggregate Metrics -->
+{% if performance.aggregate %}
+<div class="row mb-4">
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2">Average Return</h6>
+                <h3 class="mb-0">{{ performance.aggregate.avg_return_pct|floatformat:2 }}%</h3>
+                <small>Over {{ performance.period_days }} days</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2">Average Volatility</h6>
+                <h3 class="mb-0">{{ performance.aggregate.avg_volatility|floatformat:2 }}%</h3>
+                <small>Risk measure</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2">Assets Tracked</h6>
+                <h3 class="mb-0">{{ performance.aggregate.asset_count|default:0 }}</h3>
+                <small>In portfolio</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Performance Chart -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-bar-chart"></i>
+                    Asset Performance Comparison
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Asset Performance Table -->
+{% if performance.assets %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-table"></i>
+                    Individual Asset Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Start Price</th>
+                                <th>End Price</th>
+                                <th>Return %</th>
+                                <th>Volatility %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for symbol, data in performance.assets.items %}
+                            <tr>
+                                <td><strong>{{ symbol }}</strong></td>
+                                <td>${{ data.start_price|floatformat:2 }}</td>
+                                <td>${{ data.end_price|floatformat:2 }}</td>
+                                <td class="{% if data.return_pct > 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ data.return_pct|floatformat:2 }}%
+                                </td>
+                                <td>{{ data.volatility|floatformat:2 }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i>
+            No performance data available for the selected period.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Back to Dashboard -->
+<div class="row mt-4">
+    <div class="col-12">
+        <a href="{% url 'portfolio:dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Chart.js for performance chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Performance Chart
+    const chartData = {{ chart_data|safe }};
+    
+    if (chartData && chartData.length > 0) {
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.map(item => item.symbol),
+                datasets: [{
+                    label: 'Return %',
+                    data: chartData.map(item => item.return_pct),
+                    backgroundColor: chartData.map(item => item.return_pct >= 0 ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)'),
+                    borderColor: chartData.map(item => item.return_pct >= 0 ? 'rgba(40, 167, 69, 1)' : 'rgba(220, 53, 69, 1)'),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Return (%)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Return: ' + context.parsed.y.toFixed(2) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
+

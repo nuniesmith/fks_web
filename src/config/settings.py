@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     # Local apps - FKS Main orchestrator apps from /shared_src/
     "authentication",  # ✅ Authentication system
     "data_collection",  # ✅ Data collection with multi-provider manager
+    "portfolio",  # ✅ Portfolio management dashboard
+    "dev",  # ✅ Dev interface for testing all FKS services
     # "core",  # ✅ Core models and database (commented out - not yet implemented)
     # "monitor",  # ✅ Service monitoring and health checks (commented out - not yet implemented)
 ]
