@@ -3,6 +3,10 @@
 
 {% block title %}Portfolio Signals - FKS Trading Platform{% endblock %}
 
+{% block extra_js %}
+<script src="{% static 'js/signals.js' %}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="row mb-4">
     <div class="col-12">
@@ -30,7 +34,14 @@
                                 <option value="long_term" {% if category == 'long_term' %}selected{% endif %}>Long-term</option>
                             </select>
                         </div>
-                        <div class="col-md-4 d-flex align-items-end">
+                        <div class="col-md-3">
+                            <label for="use_ai" class="form-label">AI Enhancement</label>
+                            <select class="form-select" id="use_ai" name="use_ai">
+                                <option value="true" {% if use_ai %}selected{% endif %}>Enabled</option>
+                                <option value="false" {% if not use_ai %}selected{% endif %}>Disabled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-funnel"></i>
                                 Filter Signals
@@ -103,8 +114,9 @@
                                 <th>Stop Loss</th>
                                 <th>R/R</th>
                                 <th>Size</th>
-                                <th>Strength</th>
                                 <th>Confidence</th>
+                                <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -112,22 +124,49 @@
                             <tr>
                                 <td><strong>{{ signal.symbol }}</strong></td>
                                 <td>
-                                    <span class="badge bg-{% if signal.signal_type == 'buy' %}success{% else %}danger{% endif %}">
+                                    <span class="badge bg-{% if signal.signal_type == 'BUY' %}success{% else %}danger{% endif %}">
                                         {{ signal.signal_type|upper }}
                                     </span>
                                 </td>
                                 <td>{{ signal.category|title }}</td>
                                 <td>${{ signal.entry_price|floatformat:2 }}</td>
-                                <td class="text-success">${{ signal.take_profit|floatformat:2 }} (+{{ signal.take_profit_pct|floatformat:2 }}%)</td>
-                                <td class="text-danger">${{ signal.stop_loss|floatformat:2 }} (-{{ signal.stop_loss_pct|floatformat:2 }}%)</td>
-                                <td>{{ signal.risk_reward_ratio|floatformat:2 }}</td>
+                                <td class="text-success">${{ signal.take_profit|floatformat:2 }} (+{{ signal.tp_pct|floatformat:2 }}%)</td>
+                                <td class="text-danger">${{ signal.stop_loss|floatformat:2 }} (-{{ signal.sl_pct|floatformat:2 }}%)</td>
+                                <td>{{ signal.risk_reward|floatformat:2|default:"N/A" }}</td>
                                 <td>{{ signal.position_size_pct|floatformat:2 }}%</td>
                                 <td>
-                                    <span class="badge bg-{% if signal.strength == 'very_strong' %}danger{% elif signal.strength == 'strong' %}warning{% elif signal.strength == 'moderate' %}info{% else %}secondary{% endif %}">
-                                        {{ signal.strength|title }}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if signal.confidence >= 0.7 %}bg-success{% elif signal.confidence >= 0.5 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ signal.confidence|floatformat:0 }}%"
+                                             aria-valuenow="{{ signal.confidence|floatformat:0 }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ signal.confidence|floatformat:1 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if signal.status == 'approved' %}success{% elif signal.status == 'rejected' %}danger{% else %}warning{% endif %}">
+                                        {{ signal.status|title|default:"Pending" }}
                                     </span>
                                 </td>
-                                <td>{{ signal.confidence|floatformat:1 }}%</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <form method="post" action="{% url 'portfolio:approve_signal' signal.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-success" title="Approve & Execute">
+                                                <i class="bi bi-check-circle"></i> Approve
+                                            </button>
+                                        </form>
+                                        <form method="post" action="{% url 'portfolio:reject_signal' signal.id %}" style="display: inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger" title="Reject">
+                                                <i class="bi bi-x-circle"></i> Reject
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

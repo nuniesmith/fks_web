@@ -2,20 +2,31 @@
 import os
 import requests
 import json
+from datetime import datetime
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 from django.http import JsonResponse
+from django.contrib import messages
+from django.views.decorators.http import require_http_methods
 from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Portfolio service URL
+# Service URLs
 PORTFOLIO_SERVICE_URL = os.getenv(
     "PORTFOLIO_SERVICE_URL",
     "http://fks_portfolio:8012"
+)
+APP_SERVICE_URL = os.getenv(
+    "APP_SERVICE_URL",
+    "http://fks_app:8002"
+)
+EXECUTION_SERVICE_URL = os.getenv(
+    "EXECUTION_SERVICE_URL",
+    "http://fks_execution:8004"
 )
 
 
@@ -115,7 +126,7 @@ class PortfolioDashboardView(LoginRequiredMixin, TemplateView):
 
 
 class PortfolioSignalsView(LoginRequiredMixin, TemplateView):
-    """Portfolio signals view"""
+    """Portfolio signals view with approval workflow"""
     template_name = "portfolio/signals.html"
     login_url = "/login/"
 
@@ -125,37 +136,67 @@ class PortfolioSignalsView(LoginRequiredMixin, TemplateView):
         try:
             # Get category from query params
             category = self.request.GET.get("category", "swing")
+            use_ai = self.request.GET.get("use_ai", "true").lower() == "true"
             
-            # Fetch signals
-            signals_response = requests.get(
-                f"{PORTFOLIO_SERVICE_URL}/api/signals/generate",
-                params={"category": category},
-                timeout=30
-            )
-            if signals_response.status_code == 200:
-                signals_data = signals_response.json()
-                context["signals"] = signals_data.get("signals", [])
-                context["category"] = category
-            else:
-                context["signals"] = []
-                context["error"] = "Failed to fetch signals"
+            # Fetch signals from fks_app (Phase 2.2 pipeline)
+            # Try batch generation for common symbols
+            symbols = self.request.GET.get("symbols", "BTCUSDT,ETHUSDT,SOLUSDT")
+            symbol_list = [s.strip() for s in symbols.split(",")]
             
-            # Fetch signal summary
-            summary_response = requests.get(
-                f"{PORTFOLIO_SERVICE_URL}/api/dashboard/signals/summary",
-                params={"category": category} if category else {},
-                timeout=10
-            )
-            if summary_response.status_code == 200:
-                context["summary"] = summary_response.json()
+            signals = []
+            for symbol in symbol_list[:5]:  # Limit to 5 symbols for performance
+                try:
+                    signal_response = requests.get(
+                        f"{APP_SERVICE_URL}/api/v1/signals/latest/{symbol}",
+                        params={
+                            "category": category,
+                            "use_ai": use_ai
+                        },
+                        timeout=10
+                    )
+                    if signal_response.status_code == 200:
+                        signal_data = signal_response.json()
+                        # Add status for approval workflow
+                        signal_data["status"] = "pending"  # New signals start as pending
+                        signal_data["id"] = f"{symbol}_{category}_{int(datetime.now().timestamp())}"
+                        signals.append(signal_data)
+                except Exception as e:
+                    logger.warning(f"Failed to fetch signal for {symbol}: {e}")
+                    continue
+            
+            context["signals"] = signals
+            context["category"] = category
+            context["use_ai"] = use_ai
+            
+            # Calculate summary
+            if signals:
+                buy_count = sum(1 for s in signals if s.get("signal_type") == "BUY")
+                sell_count = sum(1 for s in signals if s.get("signal_type") == "SELL")
+                avg_confidence = sum(s.get("confidence", 0) for s in signals) / len(signals) * 100
+                
+                context["summary"] = {
+                    "totals": {
+                        "count": len(signals),
+                        "buy": buy_count,
+                        "sell": sell_count,
+                        "avg_confidence": avg_confidence
+                    }
+                }
             else:
-                context["summary"] = {}
+                context["summary"] = {
+                    "totals": {
+                        "count": 0,
+                        "buy": 0,
+                        "sell": 0,
+                        "avg_confidence": 0.0
+                    }
+                }
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching signals: {e}")
-            context["error"] = f"Error connecting to portfolio service: {str(e)}"
+            context["error"] = f"Error connecting to services: {str(e)}"
             context["signals"] = []
-            context["summary"] = {}
+            context["summary"] = {"totals": {"count": 0, "buy": 0, "sell": 0, "avg_confidence": 0.0}}
         
         return context
 
@@ -243,4 +284,98 @@ def portfolio_api_data(request, endpoint):
             {"error": f"Error connecting to portfolio service: {str(e)}"},
             status=503
         )
+
+
+@login_required
+@require_http_methods(["POST"])
+def approve_signal(request, signal_id):
+    """
+    Approve a signal and send to execution service.
+    Phase 2.3: Signal approval workflow
+    """
+    try:
+        # Parse signal_id (format: symbol_category_timestamp)
+        parts = signal_id.split("_")
+        if len(parts) < 2:
+            messages.error(request, "Invalid signal ID format")
+            return redirect("portfolio:signals")
+        
+        symbol = parts[0]
+        category = parts[1] if len(parts) > 1 else "swing"
+        
+        # Fetch latest signal data
+        signal_response = requests.get(
+            f"{APP_SERVICE_URL}/api/v1/signals/latest/{symbol}",
+            params={"category": category, "use_ai": "true"},
+            timeout=10
+        )
+        
+        if signal_response.status_code != 200:
+            messages.error(request, f"Failed to fetch signal data for {symbol}")
+            return redirect("portfolio:signals")
+        
+        signal_data = signal_response.json()
+        
+        # Prepare order for execution service
+        order_data = {
+            "symbol": signal_data.get("symbol"),
+            "side": signal_data.get("signal_type"),  # BUY or SELL
+            "order_type": "MARKET",  # Can be made configurable
+            "quantity": signal_data.get("position_size_units", 0),
+            "price": signal_data.get("entry_price", 0),
+            "stop_loss": signal_data.get("stop_loss"),
+            "take_profit": signal_data.get("take_profit"),
+            "signal_id": signal_id,
+            "category": category,
+            "confidence": signal_data.get("confidence", 0),
+            "strategy": "fks_app_pipeline"
+        }
+        
+        # Send to execution service
+        execution_response = requests.post(
+            f"{EXECUTION_SERVICE_URL}/orders",
+            json=order_data,
+            timeout=30
+        )
+        
+        if execution_response.status_code in [200, 201]:
+            execution_result = execution_response.json()
+            messages.success(
+                request,
+                f"Signal approved! Order {execution_result.get('order_id', 'N/A')} submitted for {symbol}"
+            )
+            logger.info(f"Signal {signal_id} approved and sent to execution")
+        else:
+            messages.error(
+                request,
+                f"Failed to execute order: {execution_response.status_code}"
+            )
+            logger.error(f"Execution service error: {execution_response.text}")
+        
+    except Exception as e:
+        logger.error(f"Error approving signal {signal_id}: {e}")
+        messages.error(request, f"Error approving signal: {str(e)}")
+    
+    return redirect("portfolio:signals")
+
+
+@login_required
+@require_http_methods(["POST"])
+def reject_signal(request, signal_id):
+    """
+    Reject a signal (no execution).
+    Phase 2.3: Signal approval workflow
+    """
+    try:
+        parts = signal_id.split("_")
+        symbol = parts[0] if parts else "UNKNOWN"
+        
+        messages.info(request, f"Signal for {symbol} rejected (not executed)")
+        logger.info(f"Signal {signal_id} rejected by user")
+        
+    except Exception as e:
+        logger.error(f"Error rejecting signal {signal_id}: {e}")
+        messages.error(request, f"Error rejecting signal: {str(e)}")
+    
+    return redirect("portfolio:signals")
 
