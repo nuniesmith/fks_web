@@ -38,6 +38,9 @@ class PortfolioDashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        # Add link to services health check
+        context['show_health_link'] = True
+        
         # Fetch portfolio overview
         try:
             overview_response = requests.get(

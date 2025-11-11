@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}FKS Services Health Check{% endblock %}
+
+{% block extra_css %}
+<style>
+    .health-status {
+        font-weight: bold;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        display: inline-block;
+    }
+    .status-healthy {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .status-unhealthy {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .status-unreachable {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .status-unknown {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+    .service-card {
+        transition: transform 0.2s;
+        height: 100%;
+    }
+    .service-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .refresh-btn {
+        cursor: pointer;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>FKS Microservices Health Check</h1>
+                    <p class="text-muted">Environment: <strong>{{ environment|title }}</strong></p>
+                </div>
+                <div>
+                    <button onclick="refreshHealth()" class="btn btn-primary refresh-btn">
+                        <span id="refresh-icon">🔄</span> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Services</h6>
+                    <h2>{{ summary.total }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="text-muted">Healthy</h6>
+                    <h2 class="text-success">{{ summary.healthy }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h6 class="text-muted">Unhealthy</h6>
+                    <h2 class="text-warning">{{ summary.unhealthy }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="text-muted">Unreachable</h6>
+                    <h2 class="text-danger">{{ summary.unreachable }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Percentage -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Overall Health: {{ summary.health_percentage|floatformat:1 }}%</h5>
+                    <div class="progress" style="height: 30px;">
+                        <div class="progress-bar 
+                            {% if summary.health_percentage >= 90 %}bg-success
+                            {% elif summary.health_percentage >= 70 %}bg-warning
+                            {% else %}bg-danger{% endif %}" 
+                            role="progressbar" 
+                            style="width: {{ summary.health_percentage }}%">
+                            {{ summary.health_percentage|floatformat:1 }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services Grid -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Services Status</h3>
+        </div>
+    </div>
+
+    <div class="row mt-3" id="services-grid">
+        {% for service in services %}
+        <div class="col-md-4 mb-3">
+            <div class="card service-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ service.name|upper }}</h5>
+                    <span class="health-status status-{{ service.status }}">
+                        {{ service.status|upper }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Port:</strong> {{ service.port }}</p>
+                    
+                    {% if service.response_time %}
+                    <p class="mb-1">
+                        <strong>Response Time:</strong> 
+                        <span class="{% if service.response_time < 0.1 %}text-success{% elif service.response_time < 0.5 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ service.response_time|floatformat:3 }}s
+                        </span>
+                    </p>
+                    {% endif %}
+                    
+                    {% if service.error %}
+                    <p class="mb-1 text-danger"><small><strong>Error:</strong> {{ service.error }}</small></p>
+                    {% endif %}
+                    
+                    {% if service.details %}
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <strong>Details:</strong><br>
+                            {% for key, value in service.details.items %}
+                                {{ key }}: {{ value }}<br>
+                            {% endfor %}
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    <p class="mb-0 mt-2">
+                        <small class="text-muted">
+                            <strong>URL:</strong> 
+                            <code style="font-size: 0.8em;">{{ service.url|truncatechars:50 }}</code>
+                        </small>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <button onclick="checkService('{{ service.name }}')" class="btn btn-sm btn-outline-primary">
+                        Re-check
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Last Updated -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <p class="text-muted text-center">
+                <small>Last updated: <span id="last-updated">{{ "now"|date:"H:i:s" }}</span> | Auto-refresh: 30s</small>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshHealth() {
+    const icon = document.getElementById('refresh-icon');
+    icon.textContent = '⏳';
+    icon.style.animation = 'spin 1s linear infinite';
+    
+    // Reload page after a short delay
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
+function checkService(serviceName) {
+    fetch(`{% url 'portfolio:health_check_api' %}?service=${serviceName}`)
+        .then(response => response.json())
+        .then(data => {
+            alert(`Service: ${serviceName}\nStatus: ${data.status}\nResponse Time: ${data.response_time || 'N/A'}s`);
+            // Optionally refresh the page
+            setTimeout(() => window.location.reload(), 1000);
+        })
+        .catch(error => {
+            alert(`Error checking ${serviceName}: ${error.message}`);
+        });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    refreshHealth();
+}, 30000);
+</script>
+{% endblock %}

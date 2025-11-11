@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Account Inventory{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>Account Inventory</h1>
+                <a href="{% url 'portfolio:account_create' %}" class="btn btn-primary">+ Add Account</a>
+            </div>
+            <p class="text-muted">Manage all your trading and investment accounts</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Prop Firm</h6>
+                    <h4>${{ prop_firm_total|floatformat:2 }}</h4>
+                    <small class="text-muted">{{ prop_firm_pct|floatformat:1 }}% of total</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Personal Trading</h6>
+                    <h4>${{ personal_trading_total|floatformat:2 }}</h4>
+                    <small class="text-muted">{{ personal_trading_pct|floatformat:1 }}% of total</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Retirement</h6>
+                    <h4>${{ retirement_total|floatformat:2 }}</h4>
+                    <small class="text-muted">{{ retirement_pct|floatformat:1 }}% of total</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted">Taxable</h6>
+                    <h4>${{ taxable_total|floatformat:2 }}</h4>
+                    <small class="text-muted">{{ taxable_pct|floatformat:1 }}% of total</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Grand Total: ${{ grand_total|floatformat:2 }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prop Firm Accounts -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Prop Firm Accounts</h3>
+            {% if prop_firm_accounts %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th>Firm</th>
+                                <th>Account #</th>
+                                <th>Balance</th>
+                                <th>Drawdown Limit</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for account in prop_firm_accounts %}
+                            <tr>
+                                <td>{{ account.account_name }}</td>
+                                <td>{{ account.firm_name }}</td>
+                                <td>{{ account.account_number }}</td>
+                                <td>${{ account.current_balance|floatformat:2 }}</td>
+                                <td>{{ account.drawdown_limit|floatformat:2 }}%</td>
+                                <td>
+                                    <a href="{% url 'portfolio:account_update' account.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a href="{% url 'portfolio:account_delete' account.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No prop firm accounts added yet. <a href="{% url 'portfolio:account_create' %}">Add one</a></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Personal Trading Accounts -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Personal Trading Accounts</h3>
+            {% if personal_trading_accounts %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th>Broker</th>
+                                <th>Account #</th>
+                                <th>Balance</th>
+                                <th>Currency</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for account in personal_trading_accounts %}
+                            <tr>
+                                <td>{{ account.account_name }}</td>
+                                <td>{{ account.firm_name }}</td>
+                                <td>{{ account.account_number }}</td>
+                                <td>${{ account.current_balance|floatformat:2 }}</td>
+                                <td>{{ account.currency }}</td>
+                                <td>
+                                    <a href="{% url 'portfolio:account_update' account.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a href="{% url 'portfolio:account_delete' account.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No personal trading accounts added yet. <a href="{% url 'portfolio:account_create' %}">Add one</a></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Retirement Accounts -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Retirement Accounts (RRSP/TFSA)</h3>
+            {% if retirement_accounts %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th>Institution</th>
+                                <th>Account #</th>
+                                <th>Balance</th>
+                                <th>Currency</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for account in retirement_accounts %}
+                            <tr>
+                                <td>{{ account.account_name }}</td>
+                                <td>{{ account.firm_name }}</td>
+                                <td>{{ account.account_number }}</td>
+                                <td>${{ account.current_balance|floatformat:2 }}</td>
+                                <td>{{ account.currency }}</td>
+                                <td>
+                                    <a href="{% url 'portfolio:account_update' account.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a href="{% url 'portfolio:account_delete' account.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No retirement accounts added yet. <a href="{% url 'portfolio:account_create' %}">Add one</a></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Taxable Investment Accounts -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Taxable Investment Accounts</h3>
+            {% if taxable_accounts %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Account Name</th>
+                                <th>Institution</th>
+                                <th>Account #</th>
+                                <th>Balance</th>
+                                <th>Currency</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for account in taxable_accounts %}
+                            <tr>
+                                <td>{{ account.account_name }}</td>
+                                <td>{{ account.firm_name }}</td>
+                                <td>{{ account.account_number }}</td>
+                                <td>${{ account.current_balance|floatformat:2 }}</td>
+                                <td>{{ account.currency }}</td>
+                                <td>
+                                    <a href="{% url 'portfolio:account_update' account.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <a href="{% url 'portfolio:account_delete' account.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No taxable accounts added yet. <a href="{% url 'portfolio:account_create' %}">Add one</a></p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <a href="{% url 'portfolio:optimization_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="{% url 'portfolio:risk_assessment' %}" class="btn btn-primary">Next: Risk Assessment →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

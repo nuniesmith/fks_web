@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Risk Assessment{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <h1>Risk Assessment</h1>
+            <p class="text-muted">Define your risk tolerance for trading and long-term accounts</p>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <!-- Trading Accounts Risk -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Trading Accounts Risk</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.trading_max_drawdown.id_for_label }}" class="form-label">{{ form.trading_max_drawdown.label }}</label>
+                                {{ form.trading_max_drawdown }}
+                                <small class="form-text text-muted">Maximum acceptable drawdown (%)</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.trading_risk_per_trade.id_for_label }}" class="form-label">{{ form.trading_risk_per_trade.label }}</label>
+                                {{ form.trading_risk_per_trade }}
+                                <small class="form-text text-muted">Maximum risk per trade (%)</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.trading_time_horizon.id_for_label }}" class="form-label">{{ form.trading_time_horizon.label }}</label>
+                            {{ form.trading_time_horizon }}
+                            <small class="form-text text-muted">e.g., 1-3 days, 1-2 weeks</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Long-Term Accounts Risk -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Long-Term Accounts Risk</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="{{ form.longterm_time_horizon.id_for_label }}" class="form-label">{{ form.longterm_time_horizon.label }}</label>
+                            {{ form.longterm_time_horizon }}
+                            <small class="form-text text-muted">e.g., 5-10 years, 10+ years</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.longterm_max_decline.id_for_label }}" class="form-label">{{ form.longterm_max_decline.label }}</label>
+                            {{ form.longterm_max_decline }}
+                            <small class="form-text text-muted">Maximum acceptable portfolio decline (%)</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.longterm_primary_goal.id_for_label }}" class="form-label">{{ form.longterm_primary_goal.label }}</label>
+                            {{ form.longterm_primary_goal }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ESG Preferences -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>ESG Preferences</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="{{ form.esg_priority.id_for_label }}" class="form-label">{{ form.esg_priority.label }}</label>
+                            {{ form.esg_priority }}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.exclude_fossil_fuels }}
+                                    <label for="{{ form.exclude_fossil_fuels.id_for_label }}" class="form-check-label">{{ form.exclude_fossil_fuels.label }}</label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    {{ form.exclude_tobacco }}
+                                    <label for="{{ form.exclude_tobacco.id_for_label }}" class="form-check-label">{{ form.exclude_tobacco.label }}</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.esg_allocation_target.id_for_label }}" class="form-label">{{ form.esg_allocation_target.label }}</label>
+                            {{ form.esg_allocation_target }}
+                            <small class="form-text text-muted">Target ESG allocation (%)</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Vanguard Risk Assessment -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3>Vanguard Risk Assessment</h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Complete the <a href="https://www.vanguard.com/investor-resources-education/online-trading/investment-risk-tolerance-assessment" target="_blank">Vanguard Risk Tolerance Assessment</a> and enter your results below.</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.vanguard_risk_score.id_for_label }}" class="form-label">{{ form.vanguard_risk_score.label }}</label>
+                                {{ form.vanguard_risk_score }}
+                                <small class="form-text text-muted">Score (0-100)</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.vanguard_risk_category.id_for_label }}" class="form-label">{{ form.vanguard_risk_category.label }}</label>
+                                {{ form.vanguard_risk_category }}
+                                <small class="form-text text-muted">e.g., Moderate, Aggressive</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">Save Risk Profile</button>
+                    <a href="{% url 'portfolio:optimization_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
