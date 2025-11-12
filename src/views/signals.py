@@ -12,9 +12,10 @@ from datetime import datetime
 import os
 
 # Signal service URL - use portfolio service for signal API
+# Try Docker service name first, then localhost for local development
 SIGNAL_SERVICE_URL = os.getenv(
     "FKS_PORTFOLIO_URL",
-    "http://fks_portfolio:8012" if os.getenv("KUBERNETES_SERVICE_HOST") else "http://localhost:8012"
+    "http://fks_portfolio:8012"  # Default to Docker service name
 )
 
 
