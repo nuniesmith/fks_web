@@ -23,6 +23,7 @@ from views import (
     api_signals,
     api_assets,
 )
+from views.signals import signals_dashboard, signals_api, signal_detail
 from views.services import (
     ServicesListView,
     ServiceDetailView,
@@ -42,7 +43,10 @@ urlpatterns = [
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
     path("metrics/", MetricsView.as_view(), name="metrics"),
     # Trading Views
-    path("signals/", SignalsView.as_view(), name="signals"),
+    path("signals/", SignalsView.as_view(), name="signals"),  # Original signals view
+    path("signals/dashboard/", signals_dashboard, name="signals_dashboard"),  # New trading day planning dashboard
+    path("signals/api/", signals_api, name="signals_api"),  # JSON API endpoint
+    path("signals/detail/<str:signal_id>/", signal_detail, name="signal_detail"),  # Signal detail view
     path("signals/approve/<int:signal_id>/", approve_signal, name="approve_signal"),
     path("signals/reject/<int:signal_id>/", reject_signal, name="reject_signal"),
     path("signals/approve-all/", approve_all_signals, name="approve_all_signals"),

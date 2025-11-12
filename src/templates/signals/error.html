@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Error - Signal Dashboard - FKS Trading Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">
+                <i class="bi bi-exclamation-triangle"></i>
+                Error Loading Signals
+            </h4>
+            <p>{{ error|default:"An unknown error occurred while loading signals." }}</p>
+            <hr>
+            <p class="mb-0">
+                <strong>Possible causes:</strong>
+                <ul>
+                    <li>The portfolio service (fks_portfolio) may not be running</li>
+                    <li>Signal files may not exist for the selected date ({{ date }})</li>
+                    <li>Network connectivity issues between services</li>
+                    <li>Service configuration issues</li>
+                </ul>
+            </p>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Troubleshooting Steps</h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>
+                        <strong>Check service status:</strong>
+                        <code>kubectl get pods -n fks-trading | grep portfolio</code>
+                    </li>
+                    <li>
+                        <strong>Verify signal files exist:</strong>
+                        Check if signal JSON files exist in the <code>/signals</code> directory for date {{ date }}
+                    </li>
+                    <li>
+                        <strong>Test API endpoint:</strong>
+                        <code>curl http://localhost:8012/api/signals/from-files?date={{ date }}</code>
+                    </li>
+                    <li>
+                        <strong>Check service logs:</strong>
+                        <code>kubectl logs -n fks-trading deployment/fks-portfolio</code>
+                    </li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'web_app:signals_dashboard' %}?date={% now 'Ymd' %}" class="btn btn-primary">
+                <i class="bi bi-arrow-clockwise"></i> Try Today's Signals
+            </a>
+            <a href="{% url 'web_app:home' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-house"></i> Go Home
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

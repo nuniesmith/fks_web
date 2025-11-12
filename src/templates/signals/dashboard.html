@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Trading Signals Dashboard - FKS Trading Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+    .signal-card {
+        transition: transform 0.2s;
+    }
+    .signal-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .category-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .lot-size-info {
+        background: #f8f9fa;
+        border-left: 3px solid #0d6efd;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+    }
+    .entry-planning {
+        background: #fff3cd;
+        border-left: 3px solid #ffc107;
+        padding: 0.75rem;
+        margin: 0.5rem 0;
+    }
+    .countdown-timer {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #198754;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>
+            <i class="bi bi-calendar-check"></i>
+            Trading Day Planning Dashboard
+        </h2>
+        <p class="text-muted">Review signals with lot sizes and entry planning for your next trading day</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Error:</strong> {{ error }}
+    <br><small>Make sure the portfolio service is running and accessible.</small>
+</div>
+{% endif %}
+
+<!-- Date and Filter Controls -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" name="date" 
+                               value="{{ date|date:'Y-m-d' }}" 
+                               onchange="this.form.submit()">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" name="category" onchange="this.form.submit()">
+                            <option value="">All Categories</option>
+                            <option value="scalp" {% if selected_category == 'scalp' %}selected{% endif %}>Scalp</option>
+                            <option value="swing" {% if selected_category == 'swing' %}selected{% endif %}>Swing</option>
+                            <option value="long_term" {% if selected_category == 'long_term' %}selected{% endif %}>Long-term</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Symbol</label>
+                        <input type="text" class="form-control" name="symbol" 
+                               value="{{ selected_symbol }}" 
+                               placeholder="e.g., BTCUSDT">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary d-block w-100">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+{% if summary %}
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card border-start-primary">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Total Signals</h6>
+                <h3 class="mb-0">{{ summary.total_signals|default:0 }}</h3>
+                <small class="text-muted">Across all categories</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card border-start-success">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Buy Signals</h6>
+                <h3 class="mb-0">{{ summary.buy_signals|default:0 }}</h3>
+                <small class="text-success">Long positions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card border-start-danger">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Sell Signals</h6>
+                <h3 class="mb-0">{{ summary.sell_signals|default:0 }}</h3>
+                <small class="text-danger">Short positions</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card border-start-info">
+            <div class="card-body">
+                <h6 class="text-muted mb-2">Avg Confidence</h6>
+                <h3 class="mb-0">{{ summary.avg_confidence|default:0|floatformat:1 }}%</h3>
+                <small class="text-muted">Signal quality</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Signals by Category -->
+{% for category, signal_list in signals.items %}
+{% if signal_list %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if category == 'scalp' %}lightning{% elif category == 'swing' %}arrow-repeat{% else %}calendar{% endif %}"></i>
+                    {{ category|title }} Signals ({{ signal_list|length }})
+                </h5>
+                <span class="badge bg-{% if category == 'scalp' %}warning{% elif category == 'swing' %}primary{% else %}info{% endif %} category-badge">
+                    {{ category|upper }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for signal in signal_list %}
+                    <div class="col-lg-6 col-xl-4 mb-3">
+                        <div class="card signal-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">
+                                        <strong>{{ signal.symbol|default:"N/A" }}</strong>
+                                    </h6>
+                                    <span class="badge bg-{% if signal.signal_type == 'BUY' %}success{% else %}danger{% endif %}">
+                                        {{ signal.signal_type|default:"N/A" }}
+                                    </span>
+                                </div>
+                                
+                                <!-- Price Levels -->
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Entry: <strong>${{ signal.entry_price|default:"0.00"|floatformat:2 }}</strong></small>
+                                    <small class="text-success d-block">TP: <strong>${{ signal.take_profit|default:"0.00"|floatformat:2 }}</strong> (+{{ signal.take_profit_pct|default:0|floatformat:2 }}%)</small>
+                                    <small class="text-danger d-block">SL: <strong>${{ signal.stop_loss|default:"0.00"|floatformat:2 }}</strong> (-{{ signal.stop_loss_pct|default:0|floatformat:2 }}%)</small>
+                                </div>
+                                
+                                <!-- Risk/Reward -->
+                                <div class="mb-2">
+                                    <span class="badge bg-info">R:R {{ signal.risk_reward_ratio|default:0|floatformat:2 }}</span>
+                                    <span class="badge bg-secondary">Confidence: {{ signal.confidence|default:0|floatformat:0 }}%</span>
+                                </div>
+                                
+                                <!-- Lot Size Information -->
+                                {% if signal.lot_size and lot_size_enabled %}
+                                <div class="lot-size-info">
+                                    <small class="text-muted d-block"><strong>Position Sizing:</strong></small>
+                                    <small class="d-block">Risk: ${{ signal.lot_size.risk_amount_usd|default:0|floatformat:2 }}</small>
+                                    <small class="d-block">Position: ${{ signal.lot_size.position_size_usd|default:0|floatformat:2 }}</small>
+                                    {% if signal.lot_size.token_amount %}
+                                    <small class="d-block">Tokens: {{ signal.lot_size.token_amount|default:0|floatformat:4 }}</small>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Entry Planning -->
+                                {% if signal.entry_planning %}
+                                <div class="entry-planning">
+                                    <small class="text-muted d-block"><strong>Entry Planning:</strong></small>
+                                    {% if signal.entry_planning.market_open_time %}
+                                    <small class="d-block">Market Opens: {{ signal.entry_planning.market_open_time }}</small>
+                                    <div class="countdown-timer" id="countdown-{{ signal.symbol }}-{{ category }}">
+                                        Loading...
+                                    </div>
+                                    {% else %}
+                                    <small class="d-block">24/7 Market (Crypto)</small>
+                                    <small class="d-block">Can enter anytime</small>
+                                    {% endif %}
+                                    {% if signal.entry_planning.recommended_order_type %}
+                                    <small class="d-block">Order Type: <strong>{{ signal.entry_planning.recommended_order_type }}</strong></small>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Signal Metadata -->
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock"></i> {{ signal.timestamp|default:"N/A" }}
+                                    </small>
+                                    {% if signal.strength %}
+                                    <br><small class="text-muted">
+                                        Strength: <span class="badge bg-secondary">{{ signal.strength }}</span>
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Actions -->
+                                <div class="mt-3">
+                                    <a href="{% url 'web_app:signal_detail' signal.symbol %}?date={{ date }}" 
+                                       class="btn btn-sm btn-outline-primary w-100">
+                                        <i class="bi bi-eye"></i> View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% empty %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            No signals found for {{ date }}. 
+            <a href="?date={% now 'Ymd' %}" class="alert-link">View today's signals</a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Performance Summary -->
+{% if performance %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up"></i>
+                    Performance Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Win Rate</h6>
+                        <h3>{{ performance.win_rate|default:0|floatformat:1 }}%</h3>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Total P&L</h6>
+                        <h3 class="{% if performance.total_pnl >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ performance.total_pnl|default:0|floatformat:2 }}
+                        </h3>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Avg Return</h6>
+                        <h3>{{ performance.avg_return|default:0|floatformat:2 }}%</h3>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Signals Executed</h6>
+                        <h3>{{ performance.executed_count|default:0 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Countdown timers for market open
+document.addEventListener('DOMContentLoaded', function() {
+    const countdownElements = document.querySelectorAll('[id^="countdown-"]');
+    
+    countdownElements.forEach(function(element) {
+        // Extract time from entry planning (would need to be passed from backend)
+        // For now, just show placeholder
+        element.textContent = 'Market open time available';
+    });
+    
+    // Auto-refresh every 60 seconds
+    setTimeout(function() {
+        location.reload();
+    }, 60000);
+});
+</script>
+{% endblock %}
+
