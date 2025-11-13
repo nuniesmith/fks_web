@@ -48,14 +48,14 @@ class HealthDashboardView(View):
         # Celery check
         services["celery"] = self._check_celery()
 
-        # Prometheus check
+        # Prometheus check (optional - monitoring service)
         services["prometheus"] = self._check_service(
-            "http://fks-platform-prometheus-server/-/healthy", "Prometheus"
+            "http://fks-platform-prometheus-server/-/healthy", "Prometheus", optional=True
         )
 
-        # Grafana check
+        # Grafana check (optional - monitoring service)
         services["grafana"] = self._check_service(
-            "http://fks-platform-grafana/api/health", "Grafana"
+            "http://fks-platform-grafana/api/health", "Grafana", optional=True
         )
 
         # Tailscale check
@@ -392,20 +392,31 @@ class HealthAPIView(View):
             system_info = dashboard._get_system_info()
 
             # Determine overall health
-            # Allow optional services to be unavailable
-            all_healthy = all(
-                service.get("status") in ["healthy", "optional"]
-                for service in services.values()
+            # Core services: database, redis, celery (must be healthy)
+            # Optional services: prometheus, grafana, tailscale, rag_service (can be unavailable)
+            core_services = ["database", "redis", "celery"]
+            core_healthy = all(
+                services.get(svc, {}).get("status") == "healthy"
+                for svc in core_services
             )
+            
+            # Overall status: healthy if core services are up, degraded if optional services are down
+            all_optional_ok = all(
+                service.get("status") in ["healthy", "optional", "unhealthy"]
+                for name, service in services.items()
+                if name not in core_services
+            )
+            
+            overall_healthy = core_healthy and all_optional_ok
 
             return JsonResponse(
                 {
-                    "status": "healthy" if all_healthy else "degraded",
+                    "status": "healthy" if overall_healthy else "degraded",
                     "timestamp": datetime.now().isoformat(),
                     "services": services,
                     "system": system_info,
                 },
-                status=200 if all_healthy else 503
+                status=200 if core_healthy else 503  # Return 200 if core services are healthy, even if optional services are down
             )
         except Exception as e:
             # If health check fails, still return a response so the service is considered alive
