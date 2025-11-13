@@ -70,8 +70,8 @@ urlpatterns = [
     path("api/performance", api_performance, name="api_performance"),
     path("api/signals", api_signals, name="api_signals"),
     path("api/assets", api_assets, name="api_assets"),
-    # Portfolio app
-    path("portfolio/", include("portfolio.urls")),
+    # Portfolio app - include with namespace
+    path("portfolio/", include(("portfolio.urls", "portfolio"), namespace="portfolio")),
     # Dev interface
     path("dev/", include("dev.urls")),
 ]
