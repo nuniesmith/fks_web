@@ -86,14 +86,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Reduce disk usage by not storing full build cache
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
 
       - name: Image digest
         run: echo ${{ steps.meta.outputs.digest }}
