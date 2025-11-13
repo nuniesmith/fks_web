@@ -1,0 +1,69 @@
+# ULTRA-OPTIMIZED: Web service WITHOUT torch/transformers (saves ~2.5GB)
+# Use this if you don't need RAG transformer features
+# RAG features will fall back to sentence-transformers (already in base image)
+FROM nuniesmith/fks:docker-ml-latest AS builder
+
+WORKDIR /app
+
+# Upgrade pip, setuptools, and wheel
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --upgrade pip setuptools wheel
+
+# Copy dependency files
+COPY requirements.txt ./
+
+# Base image already has: sentence-transformers, langchain, chromadb, ollama, TA-Lib, numpy, pandas
+# Install web-specific dependencies ONLY (skip torch/transformers - they're 2.5GB!)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m pip install --user --no-warn-script-location --no-cache-dir \
+    $(grep -v "^torch\|^transformers\|^sentence-transformers\|^langchain\|^chromadb\|^ollama\|^numpy\|^pandas" requirements.txt | grep -v "^#" | grep -v "^$")
+
+# Runtime stage
+FROM python:3.12-slim
+
+# Environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    SERVICE_NAME=fks_web \
+    SERVICE_PORT=8000 \
+    PYTHONPATH=/app/src:/app \
+    PATH=/home/appuser/.local/bin:$PATH \
+    DISABLE_TRANSFORMERS=true
+
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -u 1000 -m -s /bin/bash appuser
+
+# Copy Python packages from builder (no torch/transformers = much smaller!)
+COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
+
+# Copy application source
+COPY --chown=appuser:appuser src/ ./src/
+COPY --chown=appuser:appuser entrypoint.sh ./
+
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
+
+# Switch to non-root user
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import os,urllib.request,sys;port=os.getenv('SERVICE_PORT','8000');u=f'http://localhost:{port}/health';\
+import urllib.error;\
+try: urllib.request.urlopen(u,timeout=3);\
+except Exception: sys.exit(1)" || exit 1
+
+# Expose the service port
+EXPOSE 8000
+
+# Use entrypoint script
+ENTRYPOINT ["./entrypoint.sh"]
+
